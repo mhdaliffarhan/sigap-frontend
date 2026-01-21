@@ -11,6 +11,7 @@ import { ResetPasswordPage } from '@/components/reset-password-page';
 import SsoCallback from '@/components/views/auth/SsoCallback';
 import ServiceCatalog from '@/components/views/services/service-catalog';
 import CreateServiceTicket from '@/components/views/services/create-service-ticket';
+import RoleManagement from '@/components/views/admin/role-management';
 
 interface AppRouterProps {
   currentUser: User | null;
@@ -84,6 +85,9 @@ export const AppRouter: React.FC<AppRouterProps> = ({
         {/* 2. Halaman Buat Tiket Dinamis */}
         <Route path="services/:slug" element={<CreateServiceTicket />} />
         {/* Default redirect */}
+
+        <Route path="roles" element={<RoleManagement />} />
+        
         <Route
           path="/"
           element={

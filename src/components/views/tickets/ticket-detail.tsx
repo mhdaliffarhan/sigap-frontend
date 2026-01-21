@@ -38,6 +38,7 @@ import { api } from "@/lib/api";
 import { getTickets, getUsersSync, getWorkOrdersByTicket } from "@/lib/storage";
 import type { ViewType } from "@/components/main-layout";
 import { DynamicTicketInfo } from './dynamic-ticket-info';
+import { DynamicWorkflowActions } from './dynamic-workflow-actions';
 import { TicketDetailHeader, TicketDetailInfo } from "./ticket-detail-info";
 import { TicketDetailAlerts } from "./ticket-detail-alerts";
 import { TicketDiagnosisForm } from "./ticket-diagnosis-form";
@@ -343,26 +344,28 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
       />
 
       {/* Alerts */}
-      <TicketDetailAlerts
-        ticket={ticket}
-        currentUser={currentUser}
-        activeRole={activeRole}
-        onShowReviewDialog={() => {
-          if (ticket.type === "perbaikan") {
-            adminDialogs.setShowAssignDialog(true);
-          } else {
-            adminDialogs.setShowApproveDialog(true);
+      {!ticket.service_category && (
+        <TicketDetailAlerts
+          ticket={ticket}
+          currentUser={currentUser}
+          activeRole={activeRole}
+          onShowReviewDialog={() => {
+            if (ticket.type === "perbaikan") {
+              adminDialogs.setShowAssignDialog(true);
+            } else {
+              adminDialogs.setShowApproveDialog(true);
+            }
+          }}
+          onShowRejectDialog={() => adminDialogs.setShowRejectDialog(true)}
+          onShowAssignDialog={() => adminDialogs.setShowAssignDialog(true)}
+          onShowDiagnosaDialog={() => setShowDiagnosisConfirm(true)}
+          onShowSparepartDialog={() =>
+            workOrderDialog.setShowSparepartDialog(true)
           }
-        }}
-        onShowRejectDialog={() => adminDialogs.setShowRejectDialog(true)}
-        onShowAssignDialog={() => adminDialogs.setShowAssignDialog(true)}
-        onShowDiagnosaDialog={() => setShowDiagnosisConfirm(true)}
-        onShowSparepartDialog={() =>
-          workOrderDialog.setShowSparepartDialog(true)
-        }
-        getWorkOrdersByTicket={getWorkOrdersByTicket}
-        onUpdate={() => setRefreshKey((prev) => prev + 1)}
-      />
+          getWorkOrdersByTicket={getWorkOrdersByTicket}
+          onUpdate={() => setRefreshKey((prev) => prev + 1)}
+        />
+      )}
 
       <DynamicTicketInfo ticket={ticket} />
 
@@ -381,6 +384,16 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
         hasMore={hasMore}
         onLoadMoreComments={() => loadMoreComments(ticketId)}
       />
+
+      <div className="bg-white dark:bg-slate-900 rounded-lg border p-4 shadow-sm">
+        <h3 className="text-sm font-semibold mb-2 text-slate-500 uppercase tracking-wider">
+          Tindak Lanjut (Workflow)
+        </h3>
+        <DynamicWorkflowActions 
+          ticketId={ticketId} 
+          onUpdate={() => setRefreshKey((prev) => prev + 1)} // Ini akan me-refresh seluruh halaman detail
+        />
+      </div>
 
       {/* Progress Tracker */}
       {ticket.type === "perbaikan" && <TicketProgressTracker ticket={ticket} />}

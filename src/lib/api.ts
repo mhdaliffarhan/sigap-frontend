@@ -130,4 +130,43 @@ export const dynamicServiceApi = {
   }
 };
 
+export interface WorkflowAction {
+  id: string;
+  label: string;
+  variant: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link' | 'success';
+  require_form?: any[]; // Schema form jika butuh input
+}
+
+export const workflowApi = {
+  // Ambil daftar aksi
+  getActions: async (ticketId: string): Promise<WorkflowAction[]> => {
+    const response = await api.get(`/tickets/${ticketId}/actions`);
+    
+    // Perbaikan: Cek apakah response memiliki properti 'data' (format { data: [...] })
+    // atau apakah response itu sendiri sudah berupa array
+    if (response.data && Array.isArray(response.data)) {
+      return response.data;
+    } else if (Array.isArray(response)) {
+      return response;
+    }
+    
+    // Fallback jika struktur berbeda
+    return [];
+  },
+
+  // Eksekusi aksi (Biarkan sama)
+  executeTransition: async (ticketId: string, transitionId: string, data?: any) => {
+    return await api.post(`/tickets/${ticketId}/transitions/${transitionId}`, data);
+  }
+};
+
+export const roleApi = {
+  getAll: async () => {
+    const response = await api.get('/roles');
+    return response.data; 
+  },
+  create: async (data: any) => api.post('/roles', data),
+  update: async (id: string, data: any) => api.put(`/roles/${id}`, data),
+  delete: async (id: string) => api.delete(`/roles/${id}`),
+};
 export default api;
