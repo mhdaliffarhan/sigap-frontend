@@ -25,6 +25,7 @@ import type { User, UserRole } from "@/types";
 
 interface CreateFormData {
   name: string;
+  username: string;
   nip: string;
   jabatan: string;
   email: string;
@@ -36,6 +37,7 @@ interface CreateFormData {
 
 interface EditFormData {
   name: string;
+  username: string;
   nip: string;
   jabatan: string;
   email: string;
@@ -122,6 +124,20 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
                   onCreateFormChange({
                     ...createFormData,
                     name: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Username</Label>
+              <Input
+                placeholder="username"
+                value={createFormData.username}
+                onChange={(e) =>
+                  onCreateFormChange({
+                    ...createFormData,
+                    username: e.target.value,
                   })
                 }
               />
@@ -286,6 +302,16 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
                 value={editFormData.name}
                 onChange={(e) =>
                   onEditFormChange({ ...editFormData, name: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Username</Label>
+              <Input
+                value={editFormData.username}
+                onChange={(e) =>
+                  onEditFormChange({ ...editFormData, username: e.target.value })
                 }
               />
             </div>

@@ -37,6 +37,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { getTickets, getUsersSync, getWorkOrdersByTicket } from "@/lib/storage";
 import type { ViewType } from "@/components/main-layout";
+import { DynamicTicketInfo } from './dynamic-ticket-info';
 import { TicketDetailHeader, TicketDetailInfo } from "./ticket-detail-info";
 import { TicketDetailAlerts } from "./ticket-detail-alerts";
 import { TicketDiagnosisForm } from "./ticket-diagnosis-form";
@@ -362,6 +363,8 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
         getWorkOrdersByTicket={getWorkOrdersByTicket}
         onUpdate={() => setRefreshKey((prev) => prev + 1)}
       />
+
+      <DynamicTicketInfo ticket={ticket} />
 
       {/* Info */}
       <TicketDetailInfo

@@ -1,5 +1,10 @@
 // Centralized API helper for Vite + React
-// Uses base URL from import.meta.env.VITE_API
+// Uses base URL from import.meta.env.VITE_API_BASE_URL
+import { 
+  type ServiceCategory, 
+  type Resource, 
+  type DynamicTicketPayload 
+} from '@/types/dynamic-service';
 
 const rawBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '';
 export const API_BASE_URL = rawBase.replace(/\/$/, '');
@@ -35,16 +40,22 @@ export async function apiFetch<T = unknown>(path: string, init?: RequestInit): P
   const url = resolveApiUrl(path);
   const headers = new Headers(init?.headers || {});
   if (!headers.has('Accept')) headers.set('Accept', 'application/json');
-  // Ensure JSON is parsed by Laravel: set Content-Type whenever there is a body (except FormData)
+  
   if (!headers.has('Content-Type') && init?.body && !(init.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
   }
   
-  // Add auth token if available
-  const token = typeof window !== 'undefined' ? sessionStorage.getItem('auth_token') : null;
+  // --- PERBAIKAN UTAMA DI SINI ---
+  // Prioritaskan 'token' dari localStorage (sesuai Login SSO & Manual)
+  // Fallback ke 'auth_token' sessionStorage (untuk jaga-jaga legacy code)
+  const token = typeof window !== 'undefined' 
+    ? (localStorage.getItem('token') || sessionStorage.getItem('auth_token')) 
+    : null;
+    
   if (token && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`);
   }
+  // -------------------------------
 
   const controller = new AbortController();
   const timeoutMs = Number(import.meta.env.VITE_API_TIMEOUT || 0);
@@ -88,6 +99,35 @@ export const api = {
       body: body instanceof FormData ? body : body != null ? JSON.stringify(body) : undefined,
     }),
   delete: <T = unknown>(path: string, init?: RequestInit) => apiFetch<T>(path, { ...init, method: 'DELETE' }),
+};
+
+export const dynamicServiceApi = {
+  // 1. Ambil daftar semua layanan (Untuk Menu Katalog)
+  getServices: async (): Promise<ServiceCategory[]> => {
+    const response = await api.get('/services');
+    return response.data; // HAPUS .data yang kedua (sebelumnya response.data.data)
+  },
+
+  // 2. Ambil detail layanan
+  getServiceBySlug: async (slug: string): Promise<ServiceCategory> => {
+    const response = await api.get(`/services/${slug}`);
+    return response.data; // HAPUS .data yang kedua
+  },
+
+  // 3. Ambil Stok/Resource
+  getResources: async (slug: string, startDate?: string, endDate?: string): Promise<Resource[]> => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    
+    const response = await api.get(`/services/${slug}/resources?${params.toString()}`);
+    return response.data; // HAPUS .data yang kedua
+  },
+
+  // 4. Submit Tiket (Ini biasanya mengembalikan message/data tiket, sesuaikan jika perlu)
+  createTicket: async (payload: DynamicTicketPayload) => {
+    return await api.post('/tickets', payload);
+  }
 };
 
 export default api;

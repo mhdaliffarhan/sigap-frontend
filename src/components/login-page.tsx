@@ -12,13 +12,12 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
 import { Alert, AlertDescription } from "./ui/alert";
-import { Eye, EyeOff, AlertCircle, Mail } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, Mail, User as UserIcon, LogIn } from "lucide-react"; 
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 
 import api from "../lib/api";
 import {
-  loginUser,
   setCurrentUser,
   addAuditLog,
   setRememberToken,
@@ -42,21 +41,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // --- STYLES DEFINITION ---
-
-  // 1. Tombol Utama (Biru Mengilap)
+  // --- STYLES DEFINITION (SIGAP IDENTITY) ---
   const soapButtonPrimary = "w-full h-11 rounded-full bg-gradient-to-b from-blue-500 to-blue-600 shadow-[inset_0_2px_4px_rgba(255,255,255,0.3),inset_0_-2px_4px_rgba(0,0,0,0.2),0_4px_6px_rgba(0,0,0,0.1)] border-t border-blue-400 hover:brightness-110 active:scale-[0.98] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)] transition-all duration-200 text-white font-medium";
-
-  // 2. Tombol Sekunder/Kembali (Putih/Abu Mengilap)
   const soapButtonSecondary = "w-full h-11 rounded-full bg-gradient-to-b from-white to-gray-100 border border-gray-200 text-gray-700 shadow-[inset_0_1px_0_rgba(255,255,255,1),0_2px_3px_rgba(0,0,0,0.05)] hover:bg-gray-50 hover:text-gray-900 active:scale-[0.98] active:shadow-inner transition-all duration-200 font-medium";
-
-  // 3. Style Icon Mail dengan Border Besi
   const metalIconWrapper = "mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 shadow-[0_8px_16px_rgba(0,0,0,0.15),inset_0_4px_6px_rgba(255,255,255,0.3)] border-[6px] border-[#E2E8F0] ring-1 ring-white";
-
-  // 4. Style Alert Info
   const soapAlertStyle = "mb-4 rounded-2xl border border-blue-200 bg-blue-50/80 shadow-[inset_0_0_10px_rgba(59,130,246,0.1)] backdrop-blur-sm";
 
-  // -------------------------
+  // --- STYLE TOMBOL SSO (DISTINCT / OFFICIAL LOOK) ---
+  // Dibuat berbeda dari tombol Sigap: Kotak (rounded-md), Solid Color, Flat Shadow
+  const ssoButtonStyle = "w-full h-12 rounded-lg bg-[#0F172A] hover:bg-[#1E293B] text-white border border-slate-800 shadow-md flex items-center justify-center gap-3 transition-all active:scale-[0.99]";
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -67,21 +60,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const handleSsoLogin = async () => {
     try {
       setIsLoading(true);
-      
-      // Definisikan tipe return agar TypeScript membantu (opsional tapi bagus)
-      // Ingat: api.get langsung mengembalikan { url: "..." }
       const response = await api.get<{ url: string }>("/auth/sso-url");
-      // PERBAIKAN: Hapus ".data"
-      // response.data.url  <-- INI SALAH
-      // response.url       <-- INI BENAR
       if (response && response.url) {
         window.location.href = response.url;
       } else {
         throw new Error("URL SSO tidak ditemukan");
       }
-
     } catch (error) {
-      console.error("SSO Error:", error); // Cek console untuk liat error aslinya
+      console.error("SSO Error:", error);
       toast.error("Gagal terhubung ke SSO Server");
       setIsLoading(false);
     }
@@ -93,16 +79,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     setError("");
 
     try {
-      const response = await loginUser(
-        formData.login.toLowerCase(),
-        formData.password
-      );
+      const response = await api.post<{ user: User; access_token: string }>("/login", {
+        username: formData.login,
+        password: formData.password,
+      });
+
       const user = response.user;
 
       if (!user.isActive) {
         setError("Akun Anda sedang dinonaktifkan. Hubungi administrator");
         setIsLoading(false);
         return;
+      }
+
+      if (response.access_token) {
+        localStorage.setItem("token", response.access_token);
+        sessionStorage.setItem("auth_token", response.access_token); 
       }
 
       if (formData.rememberMe) {
@@ -145,8 +137,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       console.error("Login error:", err);
       const errorMessage =
         err?.body?.message ||
-        err?.body?.errors?.email?.[0] ||
-        "Email atau password tidak valid";
+        err?.body?.errors?.username?.[0] || 
+        err?.body?.errors?.email?.[0] || 
+        "Username atau password tidak valid";
       setError(errorMessage);
 
       addAuditLog({
@@ -167,7 +160,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API}/password/forgot`,
+        `${import.meta.env.VITE_API_BASE_URL}/password/forgot`,
         {
           method: "POST",
           headers: {
@@ -204,7 +197,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         >
           <Card className="w-full max-w-md shadow-xl border-t-white/50">
             <CardHeader className="text-center space-y-4">
-              {/* LOGO DENGAN BORDER BESI */}
               <motion.div
                 className={metalIconWrapper}
                 whileHover={{ scale: 1.05 }}
@@ -238,7 +230,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                     />
                   </div>
 
-                  {/* ALERT INFO YANG DIPERBAIKI */}
                   <Alert className={soapAlertStyle}>
                     <AlertCircle className="h-4 w-4 text-blue-600" />
                     <AlertDescription className="text-sm text-blue-700 font-medium">
@@ -252,7 +243,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                     {isLoading ? "Mengirim..." : "Kirim Link Reset"}
                   </Button>
 
-                  {/* TOMBOL KEMBALI (GAYA SABUN SEKUNDER) */}
                   <Button
                     type="button"
                     variant="ghost"
@@ -281,7 +271,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                   </p>
                 </div>
 
-                {/* TOMBOL KEMBALI KEDUA (GAYA SABUN SEKUNDER) */}
                 <Button
                   variant="ghost"
                   className={soapButtonSecondary}
@@ -312,7 +301,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         <Card className="w-full max-w-4xl overflow-hidden shadow-2xl rounded-2xl border-white/50">
           <CardContent className="grid p-0 md:grid-cols-2">
             <div className="flex flex-col justify-center p-6 pb-0 !mb-0 sm:p-10 bg-white/50 backdrop-blur-sm">
-              <CardHeader className="p-0 px-6 pt-6 mb-6 text-center md:text-left max-w-full">
+              <CardHeader className="p-0 px-6 pt-6 mb-4 text-center md:text-left max-w-full">
                 <div className="flex justify-center md:justify-start">
                   <div className="h-20 w-20 flex items-center justify-center rounded-full bg-white shadow-sm border border-gray-100">
                     <img
@@ -323,11 +312,40 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                   </div>
                 </div>
 
-                {/* Tambah teks SIGAP-TI di bawah icon untuk layar max-md */}
                 <div className="md:hidden text-center mt-2">
                   <h1 className="text font-black text-xl text-gray-900">SIGAP-TI</h1>
                 </div>
               </CardHeader>
+
+              {/* ------------------------------------------------ */}
+              {/* BAGIAN PRIORITAS: LOGIN SSO (DI ATAS FORM MANUAL) */}
+              {/* ------------------------------------------------ */}
+              <div className="px-6 mb-2">
+                <Button
+                  type="button"
+                  className={ssoButtonStyle}
+                  onClick={handleSsoLogin}
+                  disabled={isLoading}
+                >
+                  <div className="h-6 w-6 flex items-center justify-center bg-white rounded-full p-0.5">
+                     <img src="/images/bps.png" className="w-full h-full object-contain" alt="BPS" />
+                  </div>
+                  <span className="font-semibold text-[15px] tracking-wide">Login SSO BPS NTB</span>
+                </Button>
+              </div>
+
+              {/* SEPARATOR */}
+              <div className="relative my-5 px-6">
+                <div className="absolute inset-0 flex items-center px-6">
+                  <span className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-[#fcfcfc] px-3 text-gray-400 font-medium">
+                    Atau Login Manual
+                  </span>
+                </div>
+              </div>
+              {/* ------------------------------------------------ */}
 
               <form onSubmit={handleLogin}>
                 <CardContent className="space-y-5">
@@ -338,7 +356,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
                       >
-                        <Alert variant="destructive" className="mt-4 rounded-xl shadow-sm">
+                        <Alert variant="destructive" className="mt-2 rounded-xl shadow-sm">
                           <AlertCircle className="h-3 w-3" />
                           <AlertDescription>{error}</AlertDescription>
                         </Alert>
@@ -346,19 +364,23 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                     )}
                   </AnimatePresence>
 
+                  {/* INPUT USERNAME */}
                   <div className="space-y-2">
-                    <Label htmlFor="login" className="text-gray-700 font-medium ml-1">Email</Label>
-                    <Input
-                      id="login"
-                      name="login"
-                      type="email"
-                      value={formData.login}
-                      onChange={handleInputChange}
-                      placeholder="user@gmail.com"
-                      required
-                      autoComplete="email"
-                      className="rounded-xl border-gray-300 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 h-11 pr-10"
-                    />
+                    <Label htmlFor="login" className="text-gray-700 font-medium ml-1">Username</Label>
+                    <div className="relative">
+                      <Input
+                        id="login"
+                        name="login"
+                        type="text"
+                        value={formData.login}
+                        onChange={handleInputChange}
+                        placeholder="Masukkan Username"
+                        required
+                        autoComplete="username"
+                        className="rounded-xl border-gray-300 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 h-11 pr-10"
+                      />
+                      <UserIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -376,7 +398,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                         className="rounded-xl border-gray-300 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 h-11 !pr-12"
                       />
 
-                      {/* TOMBOL MATA DIPERBAIKI */}
                       <button
                         type="button"
                         className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all active:scale-90"
@@ -394,7 +415,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center space-x-2">
-                      {/* CHECKBOX DENGAN EFEK */}
                       <Checkbox
                         id="remember"
                         checked={formData.rememberMe}
@@ -414,7 +434,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                       </Label>
                     </div>
 
-                    {/* LUPA PASSWORD DENGAN EFEK PILL */}
                     <Button
                       type="button"
                       variant="ghost"
@@ -432,34 +451,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                     className={soapButtonPrimary}
                     disabled={isLoading}
                   >
-                    {isLoading ? "Memverifikasi..." : "Masuk"}
+                    {isLoading ? "Memverifikasi..." : <><LogIn className="mr-2 h-4 w-4" /> Masuk</>}
                   </Button>
                   <p className="text-center text-xs text-gray-400">
                     Belum punya akun? Hubungi administrator
                   </p>
                 </CardFooter>
               </form>
-              <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Atau masuk dengan
-                  </span>
-                </div>
-              </div>
-
-              <Button
-                variant="outline"
-                type="button"
-                className="w-full"
-                onClick={handleSsoLogin}
-                disabled={isLoading}
-              >
-                <img src="/logo.svg" className="mr-2 h-4 w-4" alt="BPS" /> {/* Ganti icon BPS jika ada */}
-                Akun SSO BPS
-              </Button>
             </div>
 
             {/* Banner Side (Kanan) */}
@@ -475,9 +473,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 alt="Image"
                 className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale z-10 opacity-80"
               />
-              {/* Filter biru penuh untuk overlay */}
               <div className="absolute inset-0 z-15 bg-blue-600/15" />
-              {/* Gradient untuk kontras teks di bawah */}
               <div className="absolute inset-0 z-16 bg-gradient-to from-black/30 via-transparent to-transparent" />
 
               <div className="absolute bottom-8 left-8 z-20 flex flex-col gap-2">

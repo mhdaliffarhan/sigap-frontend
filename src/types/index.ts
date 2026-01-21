@@ -1,26 +1,7 @@
-// type definition buat aplikasi ini
-/* Catatan status tiket perbaikan
-sebenarnya cuma ada 3 sekarang,
-yaitu:
-semua, pending, diproses, selesai
+// src/types/index.ts
 
-untuk semua:
-semua status
-pending: status==submitted
-
-diproses:
-status==assigned, in_progress, on_hold, waiting_for_submitter
-
-selesai:
-closed
-
-untuk zoom:
-pending: pending_review,
-selesai: approved, rejected, cancelled
-
-dan berikan juga arti arti status itu
-*/
-
+// --- 1. IMPORT BARU (Pastikan file dynamic-service.ts ada di folder yang sama) ---
+import type { ServiceCategory, Resource } from './dynamic-service';
 
 export type UserRole =
   | "super_admin"
@@ -29,7 +10,8 @@ export type UserRole =
   | "teknisi"
   | "pegawai";
 
-export type TicketType = "perbaikan" | "zoom_meeting";
+// --- 2. UPDATE TICKET TYPE (Agar bisa string bebas untuk slug layanan dinamis) ---
+export type TicketType = "perbaikan" | "zoom_meeting" | string;
 
 export type PerbaikanStatus =
   | "pending_review"        // Menunggu review
@@ -46,7 +28,8 @@ export type ZoomStatus =
   | 'pending_review'   // Menggantikan 'menunggu_review' 
   | 'approved'         // Disetujui
   | 'rejected'         // Ditolak
-  | 'cancelled'        // Menggantikan 'dibatalkan'
+  | 'cancelled';       // Menggantikan 'dibatalkan'
+
 export type SeverityLevel = "low" | "normal" | "high" | "critical";
 
 export type ProblemType = "hardware" | "software" | "lainnya";
@@ -61,12 +44,12 @@ export type RepairType =
 export interface User {
   id: string;
   email: string;
-  password?: string; // Optional on client; never returned in plaintext
+  password?: string;
   name: string;
   nip: string;
   jabatan: string;
-  role: UserRole; // current Role saat ini
-  roles: UserRole[]; // daftar role yang tersedia untuk akun tersebut, bisa saja array isinya cuma satu, value di role akan tetap masuk di roles.
+  role: UserRole;
+  roles: UserRole[];
   unitKerja: string;
   phone: string;
   avatar?: string;
@@ -87,17 +70,17 @@ export interface Attachment {
 export interface TimelineEvent {
   id: string;
   timestamp: string;
-  action: string; // e.g., 'status_changed', 'comment_added', 'assigned'
-  actor: string; // User name or ID
-  details: string; // "Status diubah dari 'Submitted' ke 'Assigned'"
+  action: string;
+  actor: string;
+  details: string;
   attachments?: Attachment[];
 }
 
-// 1. Dibuat BaseTicket untuk field yang sama
+// --- 3. UPDATE BASE TICKET (Menambah Field Dinamis) ---
 interface BaseTicket {
   id: string;
   ticketNumber: string;
-  type: TicketType; // Discriminator
+  type: TicketType;
   title: string;
   description: string;
   categoryId?: string;
@@ -109,29 +92,38 @@ interface BaseTicket {
   userPhone?: string;
   unitKerja?: string;
 
-  assignedTo?: string; // ID Teknisi (Perbaikan) or ID Admin (Zoom)
+  assignedTo?: string;
   createdAt: string;
   updatedAt: string;
 
   // Alasan penolakan (untuk semua tipe tiket)
   rejectionReason?: string;
 
-  // Dibuat non-optional, tiket baru memiliki array kosong
   attachments: Attachment[];
   timeline: TimelineEvent[];
 
-  // Comments count (for list views)
   commentsCount?: number;
+
+  // === FIELD BARU UNTUK LAYANAN DINAMIS ===
+  service_category_id?: string;
+  service_category?: ServiceCategory;
+  
+  resource_id?: string;
+  resource?: Resource;
+  
+  start_date?: string;
+  end_date?: string;
+  dynamic_form_data?: Record<string, any>; // Menyimpan data JSON form
+  current_assignee_role?: string;
+  // =========================================
 }
 
-// 2. Dibuat tipe spesifik untuk 'perbaikan'
 export interface PerbaikanTicket extends BaseTicket {
   type: "perbaikan";
   status: PerbaikanStatus;
-  severity: SeverityLevel; // Menggantikan 'priority'
-  data: Record<string, any>; // Data dari dynamic form 'CategoryField'
+  severity: SeverityLevel;
+  data: Record<string, any>;
 
-  // Perbaikan specific fields
   assetCode?: string;
   assetNUP?: string;
   assetLocation?: string;
@@ -139,35 +131,22 @@ export interface PerbaikanTicket extends BaseTicket {
   repairable?: boolean;
   unrepairableReason?: string;
 
-  workOrderId?: string; // Referensi ke Work Order (deprecated - use workOrders array)
-  workOrders?: WorkOrder[]; // Array of work orders for this ticket
+  workOrderId?: string;
+  workOrders?: WorkOrder[];
 
-  // Diagnosis relationship
   diagnosis?: TicketDiagnosis;
 
-  // Button status for workflow
   buttonStatus?: {
-    ubahDiagnosis: {
-      enabled: boolean;
-      reason: string | null;
-    };
-    workOrder: {
-      enabled: boolean;
-      reason: string | null;
-    };
-    selesaikan: {
-      enabled: boolean;
-      reason: string | null;
-    };
+    ubahDiagnosis: { enabled: boolean; reason: string | null; };
+    workOrder: { enabled: boolean; reason: string | null; };
+    selesaikan: { enabled: boolean; reason: string | null; };
   };
 }
 
-// 3. Dibuat tipe spesifik untuk 'zoom_meeting'
 export interface ZoomTicket extends BaseTicket {
   type: "zoom_meeting";
   status: ZoomStatus;
 
-  // Field spesifik Zoom (dipindah dari ZoomBooking)
   date: string;
   startTime: string;
   endTime: string;
@@ -176,13 +155,11 @@ export interface ZoomTicket extends BaseTicket {
   coHosts: { name: string; email: string }[];
   breakoutRooms: number;
 
-  // Info meeting (setelah approved)
   meetingLink?: string;
   meetingId?: string;
   passcode?: string;
   rejectionReason?: string;
 
-  // Zoom account relationship
   zoomAccountId?: number;
   zoomAccount?: {
     id: number;
@@ -193,23 +170,27 @@ export interface ZoomTicket extends BaseTicket {
     color?: string;
   };
 
-  // Suggested account untuk admin (dari auto-assign)
   suggestedAccountId?: number;
 }
 
-// 4. Tipe 'Ticket' utama sekarang adalah union yang type-safe
-export type Ticket = PerbaikanTicket | ZoomTicket;
+// --- 4. INTERFACE UNTUK TIKET DINAMIS (Generic) ---
+export interface DynamicTicket extends BaseTicket {
+  // Type-nya string dinamis (slug), misal "peminjaman-kendaraan"
+  // Statusnya juga string dinamis
+  status: string; 
+}
 
-// BARU: Standarisasi struktur data sparepart
+// --- 5. UPDATE TICKET UNION ---
+export type Ticket = PerbaikanTicket | ZoomTicket | DynamicTicket;
+
 export interface SparepartItem {
   name: string;
-  quantity: number; // Standarisasi menggunakan 'quantity'
+  quantity: number;
   unit: string;
-  remarks?: string; // Standarisasi menggunakan 'remarks' (menggantikan 'notes')
+  remarks?: string;
   estimatedPrice?: number;
 }
 
-// Work Order Types
 export type WorkOrderType = "sparepart" | "vendor" | "license";
 export type WorkOrderStatus =
   | "requested"
@@ -223,29 +204,24 @@ export interface WorkOrder {
   ticketNumber?: string;
   type: WorkOrderType;
   status: WorkOrderStatus;
-  createdBy: string; // teknisi ID
+  createdBy: string;
   createdByUser?: User;
   createdAt: string;
   updatedAt: string;
 
-  // Sparepart details
-  items?: any; // Can be array or JSON string
-  spareparts?: SparepartItem[]; // Deprecated, use items instead
+  items?: any; 
+  spareparts?: SparepartItem[];
 
-  // Vendor details (flattened structure from API)
   vendorName?: string;
   vendorContact?: string;
   vendorDescription?: string;
 
-  // License details
   licenseName?: string;
   licenseDescription?: string;
 
-  // Completion notes & failure reason
   completionNotes?: string;
   failureReason?: string;
 
-  // Vendor details (old structure - for backwards compatibility)
   vendorInfo?: {
     name?: string;
     contact?: string;
@@ -253,20 +229,15 @@ export interface WorkOrder {
     completionNotes?: string;
   };
 
-  // Ticket relation
   ticket?: Ticket;
-
-  // Delivery/completion info
   completedAt?: string;
-
   timeline: TimelineEvent[];
 }
 
-// Kartu Kendali (Control Card) for Asset Maintenance History
 export interface KartuKendali {
   id: string;
-  assetCode: string; // kode barang
-  assetNUP: string; // NUP
+  assetCode: string;
+  assetNUP: string;
   assetName: string;
   createdAt: string;
   entries: KartuKendaliEntry[];
@@ -277,7 +248,7 @@ export interface KartuKendaliEntry {
   ticketId: string;
   workOrderId: string;
   date: string;
-  createdBy: string; // Admin Penyedia ID
+  createdBy: string;
 
   vendorName?: string;
   vendorRef?: string;
@@ -285,46 +256,35 @@ export interface KartuKendaliEntry {
   licenseName?: string;
   licenseDescription?: string;
 
-  spareparts?: SparepartItem[]; // Items yang digunakan
+  spareparts?: SparepartItem[];
   remarks?: string;
   createdAt: string;
 }
 
-// Ticket Diagnosis - Hasil diagnosa perbaikan barang
 export interface TicketDiagnosis {
   id: string;
   ticketId: string;
   technicianId: string;
 
-  // Teknisi info
   technician?: {
     id: string;
     name: string;
     email: string;
   };
 
-  // Identifikasi masalah
   problem_description: string;
   problem_category: "hardware" | "software" | "lainnya";
 
-  // Hasil diagnosis
   repair_type: RepairType;
-
-  // Jika bisa diperbaiki langsung
   repair_description?: string;
 
-  // Jika tidak dapat diperbaiki
   unrepairable_reason?: string;
   alternative_solution?: string;
   asset_condition_change?: string;
 
-  // Catatan teknisi
   technician_notes?: string;
-
-  // Estimasi pengerjaan
   estimasi_hari?: string;
 
-  // Metadata
   createdAt: string;
   updatedAt: string;
 }
@@ -346,6 +306,6 @@ export interface Notification {
   message: string;
   type: "info" | "success" | "warning" | "error";
   read: boolean;
-  link?: string; // e.g., '/ticket/T-12345'
+  link?: string;
   createdAt: string;
 }

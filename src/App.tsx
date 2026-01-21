@@ -12,6 +12,7 @@ import {
   resetAllCaches,
   getActiveRole,
   setActiveRole,
+  logoutUser, // <--- TAMBAHKAN IMPORT INI
 } from "@/lib/storage";
 import type { User } from "@/types";
 
@@ -84,12 +85,17 @@ const App: React.FC = () => {
     loadDataFromApiOnce(user.role ?? "pegawai").catch(() => {});
   };
 
-  const handleLogout = () => {
-    resetAllCaches();
+  // --- PERBAIKAN DI SINI ---
+  const handleLogout = async () => {
+    // Panggil fungsi logoutUser dari storage.ts yang sudah kita update sebelumnya
+    // Fungsi ini akan handle: API Logout, Clear Storage, dan Redirect SSO
+    await logoutUser(); 
+    
+    // Update state lokal (meskipun browser akan redirect sebentar lagi)
     setCurrentUser(null);
-    saveCurrentUser(null);
-    clearRememberToken();
+    clearRememberToken()
   };
+  // -------------------------
 
   const handleUserUpdate = (updatedUser: User) => {
     setCurrentUser(updatedUser);

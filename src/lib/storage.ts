@@ -635,16 +635,45 @@ export const getAuthToken = (): string | null => {
 };
 
 export const logoutUser = async (): Promise<void> => {
+  // 1. BERSIHKAN DATA LOKAL DULU (Synchronous)
+  // Lakukan ini PALING PERTAMA agar terjamin terhapus sebelum redirect
   try {
-    await api.post("logout");
-  } catch (err) {
-    console.error("Logout failed:", err);
-  } finally {
-    setCurrentUser(null);
+    localStorage.removeItem("token"); // Hapus Token SSO
     sessionStorage.removeItem("auth_token");
     sessionStorage.removeItem("token_type");
-    resetAllCaches();
+    sessionStorage.removeItem("bps_current_user");
+    sessionStorage.removeItem("bps_remember_token");
+    
+    // Reset cache memori internal
+    resetAllCaches(); 
+    
+    console.log("Local credentials cleared.");
+  } catch (e) {
+    console.error("Error clearing local storage:", e);
   }
+
+  // 2. Request Logout ke Backend Lokal (Optional, best effort)
+  try {
+    // Kita tidak menunggu (await) ini terlalu lama agar UX cepat
+    // Gunakan timeout agar tidak hang jika server down
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1000); // Max 1 detik
+    
+    await api.post("logout", {}, { signal: controller.signal });
+    clearTimeout(timeoutId);
+  } catch (err) {
+    console.warn("Server logout timeout/failed (ignoring):", err);
+  }
+
+  // 3. REDIRECT KE SSO LOGOUT (Single Sign-Out)
+  // Ini intinya: Kita kirim user ke Server SSO untuk mematikan sesi di sana
+  // Lalu Server SSO akan melempar balik ke halaman Login Lokal
+  
+  const ssoBaseUrl = import.meta.env.VITE_SSO_BASE_URL || "https://sso.statsntb.id";
+  const localLoginUrl = window.location.origin + "/login"; // http://localhost:3000/login
+  
+  // Arahkan ke route baru yang kita buat di Tahap 1
+  window.location.href = `${ssoBaseUrl}/auth/sso-logout?redirect_uri=${encodeURIComponent(localLoginUrl)}`;
 };
 
 // ============================================

@@ -9,6 +9,8 @@ import { ROUTES, buildRoute, isValidRole } from '../constants';
 import type { User } from '../../types';
 import { ResetPasswordPage } from '@/components/reset-password-page';
 import SsoCallback from '@/components/views/auth/SsoCallback';
+import ServiceCatalog from '@/components/views/services/service-catalog';
+import CreateServiceTicket from '@/components/views/services/create-service-ticket';
 
 interface AppRouterProps {
   currentUser: User | null;
@@ -76,7 +78,11 @@ export const AppRouter: React.FC<AppRouterProps> = ({
             )
           }
         />
-
+        {/* 1. Halaman Katalog Layanan */}
+        <Route path="services" element={<ServiceCatalog />} />
+    
+        {/* 2. Halaman Buat Tiket Dinamis */}
+        <Route path="services/:slug" element={<CreateServiceTicket />} />
         {/* Default redirect */}
         <Route
           path="/"
