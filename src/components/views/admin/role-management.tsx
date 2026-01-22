@@ -1,40 +1,54 @@
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { roleApi } from '@/lib/api';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Card, CardContent } from '@/components/ui/card';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { toast } from 'sonner';
-import { Pencil, Trash2, Plus, Shield, Loader2 } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { roleApi } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
+import { toast } from "sonner";
+import { Pencil, Trash2, Plus, Shield, Loader2 } from "lucide-react";
 
 export default function RoleManagement() {
-  // Inisialisasi dengan array kosong []
   const [roles, setRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<any>(null);
-  
+
   const form = useForm({
-    defaultValues: { code: '', name: '', description: '' }
+    defaultValues: { code: "", name: "", description: "" },
   });
 
   const loadRoles = async () => {
     setLoading(true);
     try {
       const result = await roleApi.getAll();
-      
-      // Validasi Ekstra: Pastikan result adalah array
       if (Array.isArray(result)) {
         setRoles(result);
       } else if (result?.data && Array.isArray(result.data)) {
-        // Jaga-jaga jika formatnya { data: [...] }
         setRoles(result.data);
       } else {
-        console.warn("Format role tidak valid:", result);
-        setRoles([]); // Fallback ke array kosong
+        setRoles([]);
       }
     } catch (error) {
       console.error("Gagal memuat roles:", error);
@@ -45,146 +59,236 @@ export default function RoleManagement() {
     }
   };
 
-  useEffect(() => { loadRoles(); }, []);
+  useEffect(() => {
+    loadRoles();
+  }, []);
 
   const onSubmit = async (data: any) => {
     try {
       if (editingRole) {
         await roleApi.update(editingRole.id, data);
-        toast.success('Role berhasil diperbarui');
+        toast.success("Role berhasil diperbarui");
       } else {
         await roleApi.create(data);
-        toast.success('Role berhasil dibuat');
+        toast.success("Role berhasil dibuat");
       }
       setIsOpen(false);
       loadRoles();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Gagal menyimpan role');
+      toast.error(error.response?.data?.message || "Gagal menyimpan role");
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Hapus role ini?')) return;
+    if (!confirm("Hapus role ini?")) return;
     try {
       await roleApi.delete(id);
-      toast.success('Role dihapus');
+      toast.success("Role dihapus");
       loadRoles();
     } catch (error) {
-      toast.error('Gagal menghapus role');
+      toast.error("Gagal menghapus role");
     }
   };
 
   const openModal = (role: any = null) => {
     setEditingRole(role);
     if (role) {
-      form.reset({ code: role.code, name: role.name, description: role.description });
+      form.reset({
+        code: role.code,
+        name: role.name,
+        description: role.description,
+      });
     } else {
-      form.reset({ code: '', name: '', description: '' });
+      form.reset({ code: "", name: "", description: "" });
     }
     setIsOpen(true);
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Manajemen Role</h2>
-          <p className="text-muted-foreground">Kelola hak akses dan jabatan sistem.</p>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900">
+            Manajemen Role
+          </h2>
+          <p className="text-muted-foreground mt-1">
+            Kelola hak akses dan jabatan dalam sistem.
+          </p>
         </div>
-        <Button onClick={() => openModal()}>
-          <Plus className="mr-2 h-4 w-4" /> Tambah Role
+        <Button onClick={() => openModal()} className="gap-2 max-md:w-full">
+          <Plus className="h-4 w-4" /> Tambah Role
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
+      {/* Container Tabel dengan Style Konsisten BMN Asset */}
+      <div className="bg-white rounded-md border shadow-sm overflow-hidden">
+        <Table className="min-w-[800px]">
+          <TableHeader className="bg-gray-100/80">
+            <TableRow>
+              <TableHead className="w-[180px] border-r border-b font-semibold text-gray-900 whitespace-nowrap pl-4">
+                Kode Role (Slug)
+              </TableHead>
+              <TableHead className="w-[250px] border-r border-b font-semibold text-gray-900 whitespace-nowrap">
+                Nama Role
+              </TableHead>
+              <TableHead className="min-w-[300px] border-r border-b font-semibold text-gray-900 whitespace-nowrap">
+                Deskripsi
+              </TableHead>
+              <TableHead className="w-[100px] border-b font-semibold text-gray-900 whitespace-nowrap text-center px-2">
+                Aksi
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
               <TableRow>
-                <TableHead>Kode (Slug)</TableHead>
-                <TableHead>Nama Role</TableHead>
-                <TableHead>Deskripsi</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
+                <TableCell colSpan={4} className="text-center py-12 border-b">
+                  <div className="flex flex-col items-center justify-center text-gray-500">
+                    <Loader2 className="h-6 w-6 animate-spin text-blue-600 mb-2" />
+                    <span className="text-sm">Memuat data role...</span>
+                  </div>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                    Memuat data...
+            ) : roles.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={4}
+                  className="text-center py-12 text-gray-500 border-b"
+                >
+                  <div className="flex flex-col items-center justify-center">
+                    <Shield className="h-10 w-10 text-gray-300 mb-2" />
+                    <p className="font-medium text-gray-900">
+                      Belum ada role tersedia
+                    </p>
+                    <p className="text-sm">Silakan tambahkan role baru.</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              roles.map((role) => (
+                <TableRow
+                  key={role.id}
+                  className="group hover:bg-blue-50/40 transition-colors"
+                >
+                  {/* Kode Role */}
+                  <TableCell className="border-r border-b font-mono text-xs pl-4 align-middle bg-gray-50/50 group-hover:bg-blue-50/40 text-gray-700">
+                    {role.code}
                   </TableCell>
-                </TableRow>
-              ) : roles.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                    Belum ada role yang tersedia.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                // Safe Map: roles dijamin array karena inisialisasi dan validasi loadRoles
-                roles.map((role) => (
-                  <TableRow key={role.id}>
-                    <TableCell className="font-mono text-xs">{role.code}</TableCell>
-                    <TableCell className="font-medium flex items-center gap-2">
-                      <Shield className="h-3 w-3 text-blue-500" /> {role.name}
-                    </TableCell>
-                    <TableCell>{role.description || '-'}</TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button variant="ghost" size="icon" onClick={() => openModal(role)}>
-                        <Pencil className="h-4 w-4 text-orange-500" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(role.id)}>
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
 
+                  {/* Nama Role */}
+                  <TableCell className="border-r border-b font-medium align-middle text-gray-900">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-blue-100 rounded-md text-blue-600">
+                        <Shield className="h-3.5 w-3.5" />
+                      </div>
+                      {role.name}
+                    </div>
+                  </TableCell>
+
+                  {/* Deskripsi */}
+                  <TableCell className="border-r border-b text-sm text-gray-600 align-middle">
+                    {role.description || "-"}
+                  </TableCell>
+
+                  {/* Aksi */}
+                  <TableCell className="border-b px-2 py-1 align-middle text-center whitespace-nowrap bg-white/50 group-hover:bg-blue-50/40">
+                    <div className="flex items-center justify-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-gray-500 hover:text-blue-600 hover:bg-blue-100 rounded-sm"
+                        onClick={() => openModal(role)}
+                        title="Edit Role"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-gray-500 hover:text-red-600 hover:bg-red-100 rounded-sm"
+                        onClick={() => handleDelete(role.id)}
+                        title="Hapus Role"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Modal Dialog */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>{editingRole ? 'Edit Role' : 'Tambah Role Baru'}</DialogTitle>
+            <DialogTitle>
+              {editingRole ? "Edit Role" : "Tambah Role Baru"}
+            </DialogTitle>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField control={form.control} name="name"
+              <FormField
+                control={form.control}
+                name="name"
                 rules={{ required: "Nama role wajib diisi" }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Nama Role</FormLabel>
-                    <FormControl><Input placeholder="Contoh: Admin General Affair" {...field} /></FormControl>
+                    <FormControl>
+                      <Input
+                        placeholder="Contoh: Admin General Affair"
+                        {...field}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField control={form.control} name="code"
+              <FormField
+                control={form.control}
+                name="code"
                 rules={{ required: "Kode role wajib diisi" }}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Kode Role (Slug)</FormLabel>
-                    <FormControl><Input placeholder="Contoh: admin_ga" {...field} /></FormControl>
-                    <p className="text-xs text-muted-foreground">Gunakan huruf kecil dan garis bawah (snake_case).</p>
+                    <FormControl>
+                      <Input
+                        placeholder="Contoh: admin_ga"
+                        {...field}
+                        readOnly={!!editingRole} // Kode sebaiknya tidak diedit jika update
+                        className={editingRole ? "bg-gray-100" : ""}
+                      />
+                    </FormControl>
+                    <p className="text-[11px] text-muted-foreground">
+                      Gunakan huruf kecil dan garis bawah (snake_case). Unik.
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField control={form.control} name="description"
+              <FormField
+                control={form.control}
+                name="description"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Deskripsi</FormLabel>
-                    <FormControl><Input placeholder="Keterangan tugas..." {...field} /></FormControl>
+                    <FormControl>
+                      <Input placeholder="Keterangan tugas..." {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <DialogFooter>
-                <Button type="submit">Simpan</Button>
+              <DialogFooter className="pt-4">
+                <Button variant="outline" type="button" onClick={() => setIsOpen(false)}>
+                  Batal
+                </Button>
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                  {editingRole ? "Simpan Perubahan" : "Simpan Role"}
+                </Button>
               </DialogFooter>
             </form>
           </Form>

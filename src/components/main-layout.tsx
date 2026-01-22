@@ -1,3 +1,5 @@
+// src/components/main-layout.tsx
+
 // @ts-nocheck
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -12,6 +14,7 @@ import {
 } from "@/components/views/tickets";
 import { ZoomBooking, ZoomManagementView } from "@/components/views/zoom";
 import { UserManagement, ReportsView } from "@/components/views/admin";
+import RoleManagement from "@/components/views/admin/role-management"; // <-- IMPORT BARU
 import { ProfileSettings } from "@/components/views/shared";
 import {
   WorkOrderList,
@@ -42,6 +45,7 @@ export type ViewType =
   | "zoom-booking"
   | "zoom-management"
   | "users"
+  | "roles" // Pastikan tipe ini ada
   | "bmn-assets"
   | "work-orders"
   | "reports"
@@ -54,20 +58,20 @@ export type ViewType =
 export const getDefaultViewForRole = (role: string): ViewType => {
   switch (role) {
     case "super_admin":
-      return "dashboard"; // Super admin lihat dashboard dengan overview semua
+      return "dashboard";
 
     case "admin_layanan":
-      return "tickets"; // Admin layanan langsung ke daftar tiket untuk review
+      return "tickets";
 
     case "admin_penyedia":
-      return "work-orders"; // Admin penyedia langsung ke work orders
+      return "work-orders";
 
     case "teknisi":
-      return "tickets"; // Teknisi lihat tiket yang assigned ke dia
+      return "tickets";
 
     case "pegawai":
     default:
-      return "my-tickets"; // Pegawai lihat tiket miliknya
+      return "my-tickets";
   }
 };
 
@@ -96,7 +100,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   // Validate role from URL matches user's role
   useEffect(() => {
     if (!roleParam || !isValidRole(roleParam)) {
-      // Invalid role, redirect to user's actual role
       navigate(buildRoute("/:role/dashboard", currentUser.role), {
         replace: true,
       });
@@ -104,7 +107,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     }
 
     if (roleParam !== currentUser.role) {
-      // Role in URL doesn't match user's role - redirect to correct role
       navigate(buildRoute("/:role/dashboard", currentUser.role), {
         replace: true,
       });
@@ -115,7 +117,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   // Derive current view from URL pathname
   const getViewFromPath = (): ViewType => {
     const pathParts = location.pathname.split("/").filter(Boolean);
-    // pathParts[0] = role, pathParts[1] = menu, pathParts[2+] = detail
     if (pathParts.length >= 2) {
       const menu = pathParts[1];
       if (menu.startsWith("ticket-detail")) return "ticket-detail";
@@ -128,14 +129,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Track previous view di sessionStorage untuk persist saat navigate ke detail dari dialog
+  // Track previous view di sessionStorage
   React.useEffect(() => {
     if (currentView !== "ticket-detail") {
       sessionStorage.setItem("previousView", currentView);
     }
   }, [currentView]);
 
-  // Centralized refresh: on refreshKey change, update tickets cache once
+  // Centralized refresh
   React.useEffect(() => {
     if (refreshKey > 0) {
       (async () => {
@@ -170,6 +171,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         "zoom-management": "/:role/zoom-management",
         "work-orders": "/:role/work-orders",
         users: "/:role/users",
+        roles: "/:role/roles", // <-- Rute Roles
         "bmn-assets": "/:role/bmn-assets",
         reports: "/:role/reports",
         profile: "/:role/profile",
@@ -202,12 +204,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   };
 
   const handleBackToList = () => {
-    // Baca previousView dari sessionStorage (di-set setiap kali view berubah)
-    // Ini memastikan back button selalu ke view yang sebelumnya
     const savedPreviousView = sessionStorage.getItem("previousView");
-
-    // Tentukan back view: jika sebelumnya ke my-tickets, kembali ke my-tickets
-    // Jika zoom-booking/zoom-management, kembali ke situ. Otherwise default ke tickets
     let backView: ViewType = "tickets";
     if (savedPreviousView === "my-tickets") {
       backView = "my-tickets";
@@ -216,15 +213,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     } else if (savedPreviousView === "zoom-management") {
       backView = "zoom-management";
     }
-
     const path = buildRoute(`/:role/${backView}`, roleParam);
     navigate(path);
   };
 
   const renderContent = () => {
-    // Get active role untuk permission check
     const activeRole = getActiveRole(currentUser.id) || currentUser.role;
-    
 
     switch (currentView) {
       case "dashboard":
@@ -307,7 +301,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         );
 
       case "zoom-management":
-        // Only Admin Layanan and Super Admin can access Zoom Management
         if (activeRole !== "admin_layanan" && activeRole !== "super_admin") {
           handleNavigate("dashboard");
           return null;
@@ -320,15 +313,22 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         );
 
       case "users":
-        // Only Super Admin can access User Management
         if (activeRole !== "super_admin") {
           handleNavigate("dashboard");
           return null;
         }
         return <UserManagement currentUser={currentUser} />;
 
+      // === INTEGRASI MANAJEMEN ROLE DI SINI ===
+      case "roles":
+        if (activeRole !== "super_admin") {
+          handleNavigate("dashboard");
+          return null;
+        }
+        return <RoleManagement />;
+      // ========================================
+
       case "bmn-assets":
-        // Only Super Admin can access BMN Asset Management
         if (activeRole !== "super_admin") {
           handleNavigate("dashboard");
           return null;
@@ -336,7 +336,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         return <BmnAssetManagement currentUser={currentUser} />;
 
       case "work-orders":
-        // Hanya Teknisi dan Admin Penyedia yang bisa akses Work Order
         if (activeRole === "teknisi") {
           return <TeknisiWorkOrderList currentUser={currentUser} />;
         } else if (
@@ -345,13 +344,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         ) {
           return <WorkOrderList currentUser={currentUser} />;
         } else {
-          // Admin Layanan dan role lain tidak bisa akses Work Order
           handleNavigate("dashboard");
           return null;
         }
 
       case "reports":
-        // Only Super Admin and Admin Penyedia can access Reports
         if (activeRole !== "super_admin" && activeRole !== "admin_penyedia") {
           handleNavigate("dashboard");
           return null;
@@ -383,7 +380,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     <div className="flex flex-col h-screen" key={refreshKey}>
       {/* Mobile-only top shadow to separate header from viewport */}
       <div className="relative max-md:shadow-[0_-16px_40px_rgba(15,23,42,0.32)] max-md:z-10">
-        {/* Header */}
         <Header
           currentUser={currentUser}
           onLogout={onLogout}
@@ -395,7 +391,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       </div>
 
       <div className="flex flex-1 overflow-hidden max-md:overflow-visible relative bg-blue">
-        {/* Sidebar */}
         <Sidebar
           currentUser={currentUser}
           onNavigate={handleNavigate}
@@ -403,10 +398,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
 
-        {/* Spacer for collapsed sidebar - Hidden on mobile */}
         {sidebarCollapsed && <div className="w-[72px] flex-shrink-0 max-md:hidden" />}
 
-        {/* Main Content with rounded corner */}
         <main className="flex-1 overflow-y-scroll [scrollbar-gutter:stable] bg-[#f1f3f4] rounded-tl-3xl max-md:rounded-tr-3xl max-md:shadow-[0_-8px_30px_rgba(0,0,0,0.12)]">
           <div className="p-6">{renderContent()}</div>
         </main>

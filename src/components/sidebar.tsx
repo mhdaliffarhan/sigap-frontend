@@ -1,3 +1,5 @@
+// src/components/sidebar.tsx
+
 import React, { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { ScrollArea } from "./ui/scroll-area";
@@ -10,6 +12,7 @@ import {
   BarChart3,
   FolderKanban,
   Package,
+  Shield, // <-- Tambahkan import Icon Shield
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import type { User } from "@/types";
@@ -54,7 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const pathParts = location.pathname.split("/").filter(Boolean);
     if (pathParts.length >= 2) {
       const menu = pathParts[1];
-      if (menu.startsWith("ticket-detail")) return "ticket-detail";
+      if (menu.startsWith("ticket-detail")) return "ticket-detail" as ViewType;
       return menu as ViewType;
     }
     return "dashboard" as ViewType;
@@ -302,55 +305,63 @@ const getMenuItemsForRole = (role: UserRole): MenuItem[] => {
       ],
     },
     {
-      id: "create-ticket-perbaikan",
+      id: "create-ticket-perbaikan" as ViewType,
       label: "Perbaikan Barang",
       icon: Wrench,
       roles: ["pegawai"],
     },
     {
-      id: "zoom-booking",
+      id: "zoom-booking" as ViewType,
       label: "Booking Zoom",
       icon: Video,
       roles: ["pegawai"],
     },
     {
-      id: "my-tickets",
+      id: "my-tickets" as ViewType,
       label: "Tiket Saya",
       icon: TicketIcon,
       roles: ["pegawai", "teknisi"],
     },
     {
-      id: "tickets",
+      id: "tickets" as ViewType,
       label: "Kelola Tiket",
       icon: TicketIcon,
       roles: ["super_admin", "admin_layanan", "admin_penyedia"],
     },
     {
-      id: "zoom-management",
+      id: "zoom-management" as ViewType,
       label: "Kelola Zoom",
       icon: Video,
       roles: ["admin_layanan", "super_admin"],
     },
     {
-      id: "work-orders",
+      id: "work-orders" as ViewType,
       label: "Work Order",
       icon: FolderKanban,
       roles: ["admin_penyedia", "teknisi"],
     },
     {
-      id: "users",
+      id: "users" as ViewType,
       label: "User Management",
       icon: Users,
       roles: ["super_admin"],
     },
+    // --- INTEGRASI MANAJEMEN ROLE DI SINI ---
     {
-      id: "bmn-assets",
+      id: "roles" as ViewType, // Pastikan ini sesuai dengan path route Anda
+      label: "Manajemen Role",
+      icon: Shield,
+      roles: ["super_admin"], // Hanya Super Admin yang boleh akses
+    },
+    // ----------------------------------------
+    {
+      id: "bmn-assets" as ViewType,
       label: "Asset BMN",
       icon: Package,
       roles: ["super_admin"],
     },
     {
-      id: "reports",
+      id: "reports" as ViewType,
       label: "Kartu Kendali",
       icon: BarChart3,
       roles: ["super_admin", "admin_penyedia"],
