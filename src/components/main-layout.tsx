@@ -15,7 +15,8 @@ import {
 import { ZoomBooking, ZoomManagementView } from "@/components/views/zoom";
 import { UserManagement, ReportsView } from "@/components/views/admin";
 import RoleManagement from "@/components/views/admin/role-management";
-import ServiceCategoryManagement from "@/components/views/admin/service-category-management"; // Pastikan path import benar
+import ServiceCategoryManagement from "@/components/views/admin/service-category-management";
+import { CreateTicketWrapper } from "@/components/views/tickets/create-ticket-wrapper";
 import { ProfileSettings } from "@/components/views/shared";
 import {
   WorkOrderList,
@@ -164,6 +165,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     } else {
       const routeMap: Record<ViewType, string> = {
         dashboard: "/:role/dashboard",
+        "create-ticket": "/:role/create-ticket",
         "create-ticket-perbaikan": "/:role/create-ticket-perbaikan",
         "create-ticket-zoom": "/:role/create-ticket-zoom",
         tickets: "/:role/tickets",
@@ -240,7 +242,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             onViewTicket={handleViewTicketDetail}
           />
         );
-
+      case "create-ticket": // Ganti logic create-ticket lama atau tambah baru
+        return <CreateTicketWrapper currentUser={currentUser} />;
       case "create-ticket-perbaikan":
         return (
           <CreateTicket

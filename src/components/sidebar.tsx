@@ -7,6 +7,7 @@ import {
   Home,
   TicketIcon,
   Wrench,
+  PlusCircle,
   Video,
   Users,
   BarChart3,
@@ -306,11 +307,18 @@ const getMenuItemsForRole = (role: UserRole): MenuItem[] => {
       ],
     },
     {
+      id: "create-ticket" as ViewType,
+      label: "Buat Tiket Baru",
+      icon: PlusCircle,
+      roles: ["pegawai"],
+    },
+    {
       id: "create-ticket-perbaikan" as ViewType,
       label: "Perbaikan Barang",
       icon: Wrench,
       roles: ["pegawai"],
     },
+    
     {
       id: "zoom-booking" as ViewType,
       label: "Booking Zoom",
