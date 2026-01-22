@@ -25,23 +25,23 @@ import type { User, UserRole } from "@/types";
 
 interface CreateFormData {
   name: string;
-  username: string;
+  username?: string; // Optional jika tidak dipakai di backend
   nip: string;
   jabatan: string;
   email: string;
   password: string;
-  roles: UserRole[];
+  roles: string[]; // Generic string agar support dynamic roles
   unitKerja: string;
   phone: string;
 }
 
 interface EditFormData {
   name: string;
-  username: string;
+  username?: string;
   nip: string;
   jabatan: string;
   email: string;
-  roles: UserRole[];
+  roles: string[];
   unitKerja: string;
   phone: string;
   isActive: boolean;
@@ -52,14 +52,14 @@ interface UserManagementDialogsProps {
   onCreateDialogChange: (open: boolean) => void;
   createFormData: CreateFormData;
   onCreateFormChange: (data: CreateFormData) => void;
-  onCreateToggleRole: (role: UserRole) => void;
+  onCreateToggleRole: (role: string) => void; // Generic string
   onCreateSubmit: () => void;
 
   showEditDialog: boolean;
   onEditDialogChange: (open: boolean) => void;
   editFormData: EditFormData;
   onEditFormChange: (data: EditFormData) => void;
-  onEditToggleRole: (role: UserRole) => void;
+  onEditToggleRole: (role: string) => void;
   onEditSubmit: () => void;
   editingUser: User | null;
 
@@ -68,16 +68,11 @@ interface UserManagementDialogsProps {
   deletingUser: User | null;
   onDeleteSubmit: () => void;
 
-  currentUserRole: UserRole;
+  currentUserRole: string;
+  
+  // PROP BARU: Menerima list role dari database
+  availableRoles: { id: string; code: string; name: string }[];
 }
-
-const roleOptions: { value: UserRole; label: string }[] = [
-  { value: "super_admin", label: "Super Admin" },
-  { value: "admin_layanan", label: "Admin Layanan" },
-  { value: "admin_penyedia", label: "Admin Penyedia" },
-  { value: "teknisi", label: "Teknisi" },
-  { value: "pegawai", label: "Pegawai" },
-];
 
 export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
   showCreateDialog,
@@ -97,6 +92,7 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
   deletingUser,
   onDeleteSubmit,
   currentUserRole,
+  availableRoles = [], // Default empty array
 }) => {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -104,7 +100,6 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
     <>
       {/* Create Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={onCreateDialogChange}>
-        {/* MODIFIED: Added max-h-[85vh] and flex flex-col */}
         <DialogContent className="md:max-w-md md:max-h-[85vh] max-md:max-w-[90vw] max-md:max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Tambah User Baru</DialogTitle>
@@ -113,7 +108,6 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
             </DialogDescription>
           </DialogHeader>
 
-          {/* MODIFIED: Added flex-1, overflow-y-auto, and padding adjustments */}
           <div className="space-y-4 flex-1 overflow-y-auto pr-2 py-2">
             <div className="space-y-2">
               <Label>Nama Lengkap</Label>
@@ -121,27 +115,21 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
                 placeholder="Nama lengkap user"
                 value={createFormData.name}
                 onChange={(e) =>
-                  onCreateFormChange({
-                    ...createFormData,
-                    name: e.target.value,
-                  })
+                  onCreateFormChange({ ...createFormData, name: e.target.value })
                 }
               />
             </div>
 
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label>Username</Label>
               <Input
                 placeholder="username"
                 value={createFormData.username}
                 onChange={(e) =>
-                  onCreateFormChange({
-                    ...createFormData,
-                    username: e.target.value,
-                  })
+                  onCreateFormChange({ ...createFormData, username: e.target.value })
                 }
               />
-            </div>
+            </div> */}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -151,10 +139,7 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
                   maxLength={18}
                   value={createFormData.nip}
                   onChange={(e) =>
-                    onCreateFormChange({
-                      ...createFormData,
-                      nip: e.target.value,
-                    })
+                    onCreateFormChange({ ...createFormData, nip: e.target.value })
                   }
                 />
               </div>
@@ -165,10 +150,7 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
                   placeholder="Jabatan"
                   value={createFormData.jabatan}
                   onChange={(e) =>
-                    onCreateFormChange({
-                      ...createFormData,
-                      jabatan: e.target.value,
-                    })
+                    onCreateFormChange({ ...createFormData, jabatan: e.target.value })
                   }
                 />
               </div>
@@ -181,10 +163,7 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
                 placeholder="user@gmail.com"
                 value={createFormData.email}
                 onChange={(e) =>
-                  onCreateFormChange({
-                    ...createFormData,
-                    email: e.target.value,
-                  })
+                  onCreateFormChange({ ...createFormData, email: e.target.value })
                 }
               />
             </div>
@@ -197,10 +176,7 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
                   placeholder="Password untuk user"
                   value={createFormData.password}
                   onChange={(e) =>
-                    onCreateFormChange({
-                      ...createFormData,
-                      password: e.target.value,
-                    })
+                    onCreateFormChange({ ...createFormData, password: e.target.value })
                   }
                   className="pr-10"
                 />
@@ -223,24 +199,28 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
 
             <div className="space-y-2">
               <Label>Roles (pilih satu atau lebih)</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {roleOptions.map((opt) => {
-                  const checked = createFormData.roles.includes(opt.value);
-                  return (
-                    <label
-                      key={opt.value}
-                      className="flex items-center gap-2 border rounded px-3 py-2 cursor-pointer hover:bg-gray-50"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => onCreateToggleRole(opt.value)}
-                        className="h-4 w-4"
-                      />
-                      <span className="text-sm">{opt.label}</span>
-                    </label>
-                  );
-                })}
+              <div className="grid grid-cols-2 gap-2 max-h-[150px] overflow-y-auto border p-2 rounded-md bg-slate-50">
+                {availableRoles.length === 0 ? (
+                   <p className="text-xs text-muted-foreground col-span-2 text-center py-2">Memuat roles...</p>
+                ) : (
+                  availableRoles.map((role) => {
+                    const checked = createFormData.roles.includes(role.code);
+                    return (
+                      <label
+                        key={role.id}
+                        className={`flex items-center gap-2 border rounded px-3 py-2 cursor-pointer transition-colors ${checked ? 'bg-blue-50 border-blue-200' : 'bg-white hover:bg-gray-50'}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => onCreateToggleRole(role.code)}
+                          className="h-4 w-4 accent-blue-600"
+                        />
+                        <span className="text-sm font-medium">{role.name}</span>
+                      </label>
+                    );
+                  })
+                )}
               </div>
             </div>
 
@@ -250,10 +230,7 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
                 placeholder="Contoh: Bagian TI"
                 value={createFormData.unitKerja}
                 onChange={(e) =>
-                  onCreateFormChange({
-                    ...createFormData,
-                    unitKerja: e.target.value,
-                  })
+                  onCreateFormChange({ ...createFormData, unitKerja: e.target.value })
                 }
               />
             </div>
@@ -264,10 +241,7 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
                 placeholder="Contoh: 081234567890"
                 value={createFormData.phone}
                 onChange={(e) =>
-                  onCreateFormChange({
-                    ...createFormData,
-                    phone: e.target.value,
-                  })
+                  onCreateFormChange({ ...createFormData, phone: e.target.value })
                 }
               />
             </div>
@@ -287,14 +261,12 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
 
       {/* Edit Dialog */}
       <Dialog open={showEditDialog} onOpenChange={onEditDialogChange}>
-        {/* MODIFIED: Added max-h-[85vh] and flex flex-col */}
         <DialogContent className="md:max-w-md md:max-h-[85vh] max-md:max-w-[90vw] max-md:max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>Perbarui informasi user</DialogDescription>
           </DialogHeader>
 
-          {/* MODIFIED: Added flex-1, overflow-y-auto, and padding adjustments */}
           <div className="space-y-4 flex-1 overflow-y-auto pr-2 py-2">
             <div className="space-y-2">
               <Label>Nama Lengkap</Label>
@@ -302,16 +274,6 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
                 value={editFormData.name}
                 onChange={(e) =>
                   onEditFormChange({ ...editFormData, name: e.target.value })
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Username</Label>
-              <Input
-                value={editFormData.username}
-                onChange={(e) =>
-                  onEditFormChange({ ...editFormData, username: e.target.value })
                 }
               />
             </div>
@@ -335,10 +297,7 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
                   placeholder="Jabatan"
                   value={editFormData.jabatan}
                   onChange={(e) =>
-                    onEditFormChange({
-                      ...editFormData,
-                      jabatan: e.target.value,
-                    })
+                    onEditFormChange({ ...editFormData, jabatan: e.target.value })
                   }
                 />
               </div>
@@ -358,21 +317,21 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
             {currentUserRole === "super_admin" && (
               <div className="space-y-2">
                 <Label>Roles (pilih satu atau lebih)</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {roleOptions.map((opt) => {
-                    const checked = editFormData.roles.includes(opt.value);
+                <div className="grid grid-cols-2 gap-2 max-h-[150px] overflow-y-auto border p-2 rounded-md bg-slate-50">
+                  {availableRoles.map((role) => {
+                    const checked = editFormData.roles.includes(role.code);
                     return (
                       <label
-                        key={opt.value}
-                        className="flex items-center gap-2 border rounded px-3 py-2 cursor-pointer hover:bg-gray-50"
+                        key={role.id}
+                        className={`flex items-center gap-2 border rounded px-3 py-2 cursor-pointer transition-colors ${checked ? 'bg-blue-50 border-blue-200' : 'bg-white hover:bg-gray-50'}`}
                       >
                         <input
                           type="checkbox"
                           checked={checked}
-                          onChange={() => onEditToggleRole(opt.value)}
-                          className="h-4 w-4"
+                          onChange={() => onEditToggleRole(role.code)}
+                          className="h-4 w-4 accent-blue-600"
                         />
-                        <span className="text-sm">{opt.label}</span>
+                        <span className="text-sm font-medium">{role.name}</span>
                       </label>
                     );
                   })}
@@ -385,10 +344,7 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
               <Input
                 value={editFormData.unitKerja}
                 onChange={(e) =>
-                  onEditFormChange({
-                    ...editFormData,
-                    unitKerja: e.target.value,
-                  })
+                  onEditFormChange({ ...editFormData, unitKerja: e.target.value })
                 }
               />
             </div>

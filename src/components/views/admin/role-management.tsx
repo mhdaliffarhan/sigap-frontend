@@ -258,12 +258,17 @@ export default function RoleManagement() {
                       <Input
                         placeholder="Contoh: admin_ga"
                         {...field}
-                        readOnly={!!editingRole} // Kode sebaiknya tidak diedit jika update
-                        className={editingRole ? "bg-gray-100" : ""}
+                        // --- PERUBAHAN DI SINI ---
+                        // Jika sedang edit (editingRole ada isinya), maka disabled
+                        disabled={!!editingRole} 
+                        className={!!editingRole ? "bg-slate-100 text-slate-500 cursor-not-allowed" : ""}
+                        // -------------------------
                       />
                     </FormControl>
                     <p className="text-[11px] text-muted-foreground">
-                      Gunakan huruf kecil dan garis bawah (snake_case). Unik.
+                      {editingRole 
+                        ? "Kode role tidak dapat diubah karena digunakan sebagai ID sistem." 
+                        : "Gunakan huruf kecil dan garis bawah (snake_case). Unik."}
                     </p>
                     <FormMessage />
                   </FormItem>
