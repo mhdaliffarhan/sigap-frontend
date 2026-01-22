@@ -12,6 +12,7 @@ import SsoCallback from '@/components/views/auth/SsoCallback';
 import ServiceCatalog from '@/components/views/services/service-catalog';
 import CreateServiceTicket from '@/components/views/services/create-service-ticket';
 import RoleManagement from '@/components/views/admin/role-management';
+import ServiceCategoryManagement from '@/components/views/admin/service-category-management';
 
 interface AppRouterProps {
   currentUser: User | null;
@@ -87,7 +88,7 @@ export const AppRouter: React.FC<AppRouterProps> = ({
         {/* Default redirect */}
 
         <Route path="roles" element={<RoleManagement />} />
-        
+        <Route path="service-categories" element={<ServiceCategoryManagement />} />
         <Route
           path="/"
           element={

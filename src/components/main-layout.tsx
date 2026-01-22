@@ -14,7 +14,8 @@ import {
 } from "@/components/views/tickets";
 import { ZoomBooking, ZoomManagementView } from "@/components/views/zoom";
 import { UserManagement, ReportsView } from "@/components/views/admin";
-import RoleManagement from "@/components/views/admin/role-management"; // <-- IMPORT BARU
+import RoleManagement from "@/components/views/admin/role-management";
+import ServiceCategoryManagement from "@/components/views/admin/service-category-management"; // Pastikan path import benar
 import { ProfileSettings } from "@/components/views/shared";
 import {
   WorkOrderList,
@@ -45,7 +46,8 @@ export type ViewType =
   | "zoom-booking"
   | "zoom-management"
   | "users"
-  | "roles" // Pastikan tipe ini ada
+  | "roles"
+  | "service-categories"
   | "bmn-assets"
   | "work-orders"
   | "reports"
@@ -171,13 +173,22 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         "zoom-management": "/:role/zoom-management",
         "work-orders": "/:role/work-orders",
         users: "/:role/users",
-        roles: "/:role/roles", // <-- Rute Roles
+        roles: "/:role/roles", 
+        "service-categories": "/:role/service-categories", // <--- INI PERBAIKANNYA
         "bmn-assets": "/:role/bmn-assets",
         reports: "/:role/reports",
         profile: "/:role/profile",
         settings: "/:role/settings",
       };
-      const path = buildRoute(routeMap[view], roleParam);
+      
+      const pattern = routeMap[view];
+      // Safety check jika view tidak ada di map
+      if (!pattern) {
+        console.error(`Route mapping not found for view: ${view}`);
+        return;
+      }
+
+      const path = buildRoute(pattern, roleParam);
       navigate(path);
     }
   };
@@ -319,14 +330,19 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         }
         return <UserManagement currentUser={currentUser} />;
 
-      // === INTEGRASI MANAJEMEN ROLE DI SINI ===
       case "roles":
         if (activeRole !== "super_admin") {
           handleNavigate("dashboard");
           return null;
         }
         return <RoleManagement />;
-      // ========================================
+      
+      case "service-categories":
+        if (activeRole !== "admin_layanan" && activeRole !== "super_admin"){
+          handleNavigate("dashboard");
+          return null;
+        }
+        return <ServiceCategoryManagement />
 
       case "bmn-assets":
         if (activeRole !== "super_admin") {

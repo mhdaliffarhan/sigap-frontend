@@ -12,7 +12,8 @@ import {
   BarChart3,
   FolderKanban,
   Package,
-  Shield, // <-- Tambahkan import Icon Shield
+  Shield,
+  Layers,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import type { User } from "@/types";
@@ -352,6 +353,12 @@ const getMenuItemsForRole = (role: UserRole): MenuItem[] => {
       label: "Manajemen Role",
       icon: Shield,
       roles: ["super_admin"], // Hanya Super Admin yang boleh akses
+    },
+    {
+      id: "service-categories" as ViewType,
+      label: "Katalog Layanan",
+      icon: Layers, // Import icon Layers
+      roles: ["super_admin", "admin_layanan"],
     },
     // ----------------------------------------
     {

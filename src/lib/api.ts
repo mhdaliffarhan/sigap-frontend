@@ -169,4 +169,29 @@ export const roleApi = {
   update: async (id: string, data: any) => api.put(`/roles/${id}`, data),
   delete: async (id: string) => api.delete(`/roles/${id}`),
 };
+
+export const resourceApi = {
+  getByCategory: async (categoryId: string) => {
+    const res = await api.get(`/resources?service_category_id=${categoryId}`);
+    return res.data?.data || res.data || [];
+  },
+  create: async (data: any) => api.post('/resources', data),
+  update: async (id: string, data: any) => api.put(`/resources/${id}`, data),
+  delete: async (id: string) => api.delete(`/resources/${id}`),
+};
+
+export const serviceCategoryApi = {
+  getAll: async () => {
+    const res = await api.get('/service-categories');
+    return res.data?.data || res.data || [];
+  },
+  getOne: async (id: string) => {
+    const res = await api.get(`/service-categories/${id}`);
+    return res.data?.data || res.data;
+  },
+  create: async (data: any) => api.post('/service-categories', data),
+  update: async (id: string, data: any) => api.put(`/service-categories/${id}`, data),
+  delete: async (id: string) => api.delete(`/service-categories/${id}`),
+};
+
 export default api;
