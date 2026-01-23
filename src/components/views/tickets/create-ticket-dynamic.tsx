@@ -1,16 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { api, resourceApi } from '@/lib/api';
+import { api, resourceApi, availabilityApi } from '@/lib/api'; // Pastikan availabilityApi diimport
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
-import { ArrowLeft, Send, Loader2, Info, Calendar as CalendarIcon, Package, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Info, Calendar as CalendarIcon, Package, AlertCircle, AlertTriangle } from 'lucide-react';
 import { DynamicFormRenderer } from '@/components/dynamic-engine/form-renderer';
-import { Separator } from "@/components/ui/separator"
+import { Separator } from "@/components/ui/separator";
+import { ResourceCalendar } from './resource-calendar';
+import { format, areIntervalsOverlapping, parseISO } from 'date-fns';
 
 interface CreateTicketDynamicProps {
   currentUser: any;
@@ -28,6 +40,13 @@ export const CreateTicketDynamic: React.FC<CreateTicketDynamicProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resources, setResources] = useState<any[]>([]); 
   const [loadingResources, setLoadingResources] = useState(false);
+  
+  // State untuk Dialog Konflik
+  const [conflictDialog, setConflictDialog] = useState<{
+    open: boolean;
+    data: any | null; // Data form yang akan dikirim
+    conflictInfo: any | null; // Info tiket yang bentrok
+  }>({ open: false, data: null, conflictInfo: null });
 
   // Cek apakah tipe layanan adalah booking
   const isBooking = service.type === 'booking';
@@ -48,6 +67,9 @@ export const CreateTicketDynamic: React.FC<CreateTicketDynamicProps> = ({
     }
   });
 
+  // Pantau perubahan resource_id untuk memunculkan kalender
+  const selectedResourceId = form.watch('resource_id');
+
   // Load Resources jika tipe booking
   useEffect(() => {
     if (isBooking) {
@@ -67,25 +89,19 @@ export const CreateTicketDynamic: React.FC<CreateTicketDynamicProps> = ({
     }
   }, [service.id, isBooking]);
 
-  const onSubmit = async (data: any) => {
+  // --- FUNGSI UTAMA: KIRIM DATA ---
+  const executeSubmission = async (data: any) => {
     setIsSubmitting(true);
     try {
-      // Susun Payload untuk dikirim ke Backend
       const payload = {
         title: data.title,
         description: data.description,
         priority: data.priority,
-        
-        // Data Penting untuk Backend mengenali jenis tiket
         type: service.slug, 
         service_category_id: service.id,
-        
-        // Data Booking
         resource_id: isBooking ? data.resource_id : null,
         start_date: isBooking ? data.start_date : null,
         end_date: isBooking ? data.end_date : null,
-        
-        // Data Dinamis
         ticket_data: data.ticket_data 
       };
 
@@ -101,11 +117,81 @@ export const CreateTicketDynamic: React.FC<CreateTicketDynamicProps> = ({
       toast.error(msg);
     } finally {
       setIsSubmitting(false);
+      setConflictDialog({ open: false, data: null, conflictInfo: null });
+    }
+  };
+
+  // --- VALIDASI SEBELUM SUBMIT ---
+  const onSubmit = async (data: any) => {
+    // Jika BUKAN booking, langsung kirim
+    if (!isBooking || !data.resource_id || !data.start_date || !data.end_date) {
+      await executeSubmission(data);
+      return;
+    }
+
+    // Jika BOOKING, cek bentrok dulu
+    setIsSubmitting(true);
+    try {
+      // 1. Ambil semua jadwal untuk resource ini
+      // Kita pakai endpoint getEvents yang sudah ada untuk ResourceCalendar
+      const events = await availabilityApi.getEvents(data.resource_id);
+      
+      const userStart = new Date(data.start_date);
+      const userEnd = new Date(data.end_date);
+
+      // 2. Cari Tiket yang Bentrok (Overlap)
+      const conflict = events.find((ev: any) => {
+        // Abaikan tiket yang sudah batal/ditolak
+        if (['cancelled', 'rejected', 'closed_unrepairable'].includes(ev.status)) return false;
+
+        const evStart = new Date(ev.start_date);
+        const evEnd = new Date(ev.end_date);
+
+        // Cek overlap menggunakan date-fns
+        return areIntervalsOverlapping(
+          { start: userStart, end: userEnd },
+          { start: evStart, end: evEnd }
+        );
+      });
+
+      if (conflict) {
+        // --- LOGIKA VALIDASI ---
+        const hardBlockStatuses = ['approved', 'assigned', 'in_progress', 'completed', 'resolved', 'closed'];
+        
+        if (hardBlockStatuses.includes(conflict.status)) {
+          // KASUS 1: Sudah DISETUJUI -> BLOKIR TOTAL
+          toast.error("Jadwal Tidak Tersedia", {
+            description: `Bentrok dengan tiket #${conflict.ticketNumber || 'Lain'} (Status: ${conflict.status}). Silakan pilih waktu lain.`,
+            duration: 5000,
+          });
+          setIsSubmitting(false); // Stop loading
+          return; // JANGAN LANJUT
+        } else {
+          // KASUS 2: Masih PENGAJUAN (Submitted) -> WARNING
+          // Tampilkan Dialog Konfirmasi
+          setConflictDialog({
+            open: true,
+            data: data, // Simpan data form untuk dikirim nanti jika user maksa
+            conflictInfo: conflict
+          });
+          setIsSubmitting(false); // Pause loading waiting for user input
+          return;
+        }
+      }
+
+      // Jika tidak ada bentrok, lanjut kirim
+      await executeSubmission(data);
+
+    } catch (error) {
+      console.error("Gagal cek ketersediaan", error);
+      // Jika gagal cek (misal internet mati), tanya user mau nekat atau tidak?
+      // Untuk aman, kita biarkan error atau bypass (disini kita coba submit aja)
+      await executeSubmission(data);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto pb-12">
+    <div className="max-w-4xl mx-auto pb-12">
       {/* Header Navigasi */}
       <div className="flex items-center gap-3 mb-6">
         <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground hover:text-foreground pl-0 hover:bg-transparent">
@@ -186,7 +272,7 @@ export const CreateTicketDynamic: React.FC<CreateTicketDynamicProps> = ({
                       <CalendarIcon className="h-4 w-4" /> Detail Peminjaman
                     </h3>
                     
-                    <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 space-y-4">
+                    <div className="bg-blue-50/50 p-6 rounded-lg border border-blue-100 space-y-6">
                       {/* Pilih Resource */}
                       <FormField control={form.control} name="resource_id" rules={{required: "Pilih unit yang akan dipinjam"}} render={({ field }) => (
                         <FormItem>
@@ -213,6 +299,26 @@ export const CreateTicketDynamic: React.FC<CreateTicketDynamicProps> = ({
                           <FormMessage />
                         </FormItem>
                       )} />
+
+                      {/* --- KALENDER KETERSEDIAAN (Muncul saat resource dipilih) --- */}
+                      {selectedResourceId && (
+                        <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+                           <div className="mb-2 flex items-center justify-between">
+                              <FormLabel>Cek Ketersediaan Jadwal</FormLabel>
+                              <span className="text-xs text-muted-foreground">Klik tanggal untuk memilih otomatis</span>
+                           </div>
+                           <ResourceCalendar 
+                             resourceId={selectedResourceId} 
+                             onDateSelect={(date) => {
+                               // Otomatis set tanggal booking saat tanggal diklik (default 08:00 - 09:00)
+                               const dateStr = format(date, 'yyyy-MM-dd');
+                               form.setValue('start_date', `${dateStr}T08:00`);
+                               form.setValue('end_date', `${dateStr}T09:00`);
+                               toast.info(`Tanggal ${dateStr} dipilih. Silakan sesuaikan jam.`);
+                             }}
+                           />
+                        </div>
+                      )}
 
                       {/* Tanggal Mulai & Selesai */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -244,8 +350,10 @@ export const CreateTicketDynamic: React.FC<CreateTicketDynamicProps> = ({
                     <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-2">
                       <AlertCircle className="h-4 w-4" /> Data Tambahan
                     </h3>
-                    {/* Renderer Engine */}
-                    <DynamicFormRenderer schema={service.form_schema} form={form} />
+                    <div className="p-1">
+                      {/* Renderer Engine */}
+                      <DynamicFormRenderer schema={service.form_schema} form={form} />
+                    </div>
                   </div>
                 </>
               )}
@@ -266,6 +374,46 @@ export const CreateTicketDynamic: React.FC<CreateTicketDynamicProps> = ({
           </form>
         </Form>
       </Card>
+
+      {/* --- DIALOG KONFLIK JADWAL --- */}
+      <AlertDialog open={conflictDialog.open} onOpenChange={(open) => {
+          if(!open) setConflictDialog(prev => ({ ...prev, open: false }));
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="h-5 w-5" /> Jadwal Tumpang Tindih
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Terdapat pengajuan lain pada rentang waktu yang sama:
+              </p>
+              <div className="bg-amber-50 p-3 rounded border border-amber-200 text-amber-900 text-sm">
+                <strong>Tiket #{conflictDialog.conflictInfo?.ticketNumber || 'Lain'}</strong><br/>
+                Status: {conflictDialog.conflictInfo?.status?.replace('_', ' ').toUpperCase()}<br/>
+                Waktu: {conflictDialog.conflictInfo?.start_date ? format(new Date(conflictDialog.conflictInfo.start_date), 'dd/MM HH:mm') : '-'} s/d {conflictDialog.conflictInfo?.end_date ? format(new Date(conflictDialog.conflictInfo.end_date), 'dd/MM HH:mm') : '-'}
+              </div>
+              <p>
+                Karena tiket tersebut <strong>belum disetujui</strong> (masih status {conflictDialog.conflictInfo?.status}), Anda tetap dapat mengajukan tiket ini. 
+                Namun, Admin akan menentukan siapa yang disetujui.
+              </p>
+              <p className="font-semibold text-slate-900">Apakah Anda ingin melanjutkan?</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConflictDialog(prev => ({ ...prev, open: false }))}>
+              Batal & Pilih Waktu Lain
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => conflictDialog.data && executeSubmission(conflictDialog.data)}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              Tetap Ajukan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 };

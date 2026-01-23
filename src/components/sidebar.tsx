@@ -312,6 +312,7 @@ const getMenuItemsForRole = (role: UserRole): MenuItem[] => {
       icon: PlusCircle,
       roles: ["pegawai"],
     },
+    
     {
       id: "create-ticket-perbaikan" as ViewType,
       label: "Perbaikan Barang",

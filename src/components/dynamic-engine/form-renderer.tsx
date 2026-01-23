@@ -28,9 +28,10 @@ export interface FormFieldSchema {
 interface DynamicFormRendererProps {
   schema: FormFieldSchema[]; 
   form: UseFormReturn<any>; // Instance dari React Hook Form parent
+  prefix?: string;
 }
 
-export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({ schema, form }) => {
+export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({ schema, form, prefix = 'ticket_data' }) => {
   
   // Jika tidak ada schema, jangan render apa-apa
   if (!schema || schema.length === 0) return null;
@@ -43,7 +44,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({ schema
           control={form.control}
           // PENTING: Kita simpan data di dalam object 'ticket_data'
           // Contoh hasil: { title: "...", ticket_data: { alasan: "...", jumlah: 5 } }
-          name={`ticket_data.${field.name}`} 
+          name={`${prefix}.${field.name}`}
           rules={{ 
             required: field.type !== 'boolean' && field.required ? `${field.label} wajib diisi` : false 
           }}

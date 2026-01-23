@@ -6,6 +6,7 @@ import { TicketProgressTracker } from "./ticket-progress-tracker";
 import { TicketProgressTrackerZoom } from "./ticket-progress-tracker-zoom";
 import { WorkOrderForm } from "@/components/views/work-orders/work-order-form";
 import { ZoomAdminReviewModal } from "@/components/views/zoom";
+
 import {
   Dialog,
   DialogContent,
@@ -29,7 +30,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AlertCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { AlertCircle, ArrowRightLeft, CheckCircle, Lock, ShieldAlert } from "lucide-react"; // Tambah ShieldAlert icon
 import type { User } from "@/types";
 import { motion } from "motion/react";
 import { Spinner } from "@/components/ui/spinner";
@@ -42,6 +44,7 @@ import { DynamicWorkflowActions } from './dynamic-workflow-actions';
 import { TicketDetailHeader, TicketDetailInfo } from "./ticket-detail-info";
 import { TicketDetailAlerts } from "./ticket-detail-alerts";
 import { TicketDiagnosisForm } from "./ticket-diagnosis-form";
+import { ResolveTicketDialog, TransferTicketDialog } from './ticket-action-dialogs';
 import { useTicketComments } from "@/hooks/useTicketComments";
 import {
   useAdminLayananDialogs,
@@ -74,6 +77,10 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
   >(null);
   const [showDiagnosisConfirm, setShowDiagnosisConfirm] = React.useState(false);
 
+  // State untuk Dialog Aksi PJ
+  const [resolveOpen, setResolveOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+
   // Multi-role support
   const effectiveRole = activeRole || currentUser.role;
 
@@ -87,7 +94,6 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
   const { comment, setComment } = useCommentState();
   const { showZoomReviewModal, setShowZoomReviewModal } = useZoomReviewModal();
   
-  // State untuk prevent double submit komentar
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const {
     comments,
@@ -98,7 +104,6 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
     addComment,
   } = useTicketComments();
 
-  // Fetch full ticket detail from backend
   React.useEffect(() => {
     const fetchTicketDetail = async () => {
       setLoadingDetail(true);
@@ -116,14 +121,12 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
     fetchTicketDetail();
   }, [ticketId, refreshKey]);
 
-  // Fetch comments saat component mount
   React.useEffect(() => {
     fetchComments(ticketId);
   }, [ticketId, fetchComments]);
 
   const ticket = ticketDetail || tickets.find((t) => t.id === Number(ticketId));
 
-  // === COMPUTED VALUES (useMemo must be before conditional returns) ===
   const [technicianStats, setTechnicianStats] = React.useState<
     Record<string, number>
   >({});
@@ -150,7 +153,6 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
   const technicians = useMemo(
     () =>
       users.filter((u) => {
-        // Support multi-role: cek u.roles array atau u.role singular
         const userRoles = Array.isArray(u.roles)
           ? u.roles
           : u.role
@@ -161,7 +163,6 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
     [users]
   );
 
-  // === EARLY RETURN IF TICKET NOT FOUND (AFTER ALL HOOKS) ===
   if (loadingDetail) {
     return (
       <div className="text-center py-12">
@@ -183,37 +184,51 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
     );
   }
 
-  // === DERIVED VALUES (after ticket is confirmed to exist) ===
   const ticketOwner = users.find((u) => u.id === ticket.userId);
-  // Use assignedUser from backend if available, otherwise find from users array
   const assignedUser = ticket.assignedTo
     ? users.find((u) => u.id === ticket.assignedTo)
     : null;
 
-  // === PERMISSION CHECKS ===
   const canComplete =
     effectiveRole === "pegawai" &&
     ticket.userId === currentUser.id &&
     ["waiting_for_submitter"].includes(ticket.status as any);
-  // === HANDLERS (KEPT INLINE) ===
+
+  // --- [UPDATE] LOGIKA HAK AKSES SUPER ADMIN & PJ ---
+  
+  // 1. Cek apakah Super Admin (Intervensi Penuh)
+  const isSuperAdmin = effectiveRole === 'super_admin' || (Array.isArray(currentUser.roles) && currentUser.roles.includes('super_admin'));
+
+  // 2. Cek apakah PJ (Normal Flow)
+  const isAssignee = ticket.current_assignee_role && (
+    Array.isArray(currentUser.roles) 
+      ? currentUser.roles.includes(ticket.current_assignee_role) 
+      : currentUser.role === ticket.current_assignee_role
+  );
+  
+  // 3. User bisa bertindak jika: (Dia PJ ATAU Dia Super Admin) DAN (Status Tiket Aktif)
+  const canAct = (isAssignee || isSuperAdmin) && ['submitted', 'in_progress', 'on_hold', 'approved'].includes(ticket.status);
+
+  // 4. Alert Warning: Punya Role tapi Salah Mode (Hanya muncul jika BUKAN Super Admin)
+  const hasRightRoleButWrongMode = !isAssignee && !isSuperAdmin && ticket.current_assignee_role && 
+    (Array.isArray(currentUser.roles) && currentUser.roles.includes(ticket.current_assignee_role));
+
+  // =================================================
+
   const handleApprove = async () => {
-    // Jika tiket perbaikan, buka dialog assign teknisi
     if (ticket.type === "perbaikan") {
       adminDialogs.setShowApproveDialog(false);
       adminDialogs.setShowAssignDialog(true);
       return;
     }
-
     try {
       await api.patch(`tickets/${ticketId}/approve`, {});
-
       toast.success("Tiket berhasil disetujui");
       adminDialogs.setShowApproveDialog(false);
       setRefreshKey((prev) => prev + 1);
     } catch (error: any) {
       console.error("Failed to approve ticket:", error);
-      const errorMsg = error?.body?.message || "Gagal menyetujui tiket";
-      toast.error(errorMsg);
+      toast.error(error?.body?.message || "Gagal menyetujui tiket");
     }
   };
 
@@ -222,9 +237,7 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
       toast.error("Alasan penolakan harus diisi");
       return;
     }
-
     try {
-      // Gunakan endpoint yang sesuai berdasarkan tipe tiket
       const endpoint =
         ticket.type === "zoom_meeting"
           ? `tickets/${ticketId}/reject-zoom`
@@ -233,15 +246,13 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
       await api.patch(endpoint, {
         reason: adminDialogs.rejectReason,
       });
-
       toast.success("Tiket berhasil ditolak");
       adminDialogs.setShowRejectDialog(false);
       adminDialogs.setRejectReason("");
       setRefreshKey((prev) => prev + 1);
     } catch (error: any) {
       console.error("Failed to reject ticket:", error);
-      const errorMsg = error?.body?.message || "Gagal menolak tiket";
-      toast.error(errorMsg);
+      toast.error(error?.body?.message || "Gagal menolak tiket");
     }
   };
 
@@ -250,20 +261,17 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
       toast.error("Pilih teknisi terlebih dahulu");
       return;
     }
-
     try {
       await api.patch(`tickets/${ticketId}/assign`, {
         assigned_to: adminDialogs.selectedTechnician,
       });
-
       toast.success("Tiket berhasil ditugaskan");
       adminDialogs.setShowAssignDialog(false);
       adminDialogs.setSelectedTechnician("");
       setRefreshKey((prev) => prev + 1);
     } catch (error: any) {
       console.error("Failed to assign ticket:", error);
-      const errorMsg = error?.body?.message || "Gagal menugaskan tiket";
-      toast.error(errorMsg);
+      toast.error(error?.body?.message || "Gagal menugaskan tiket");
     }
   };
 
@@ -272,11 +280,7 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
       toast.error("Komentar tidak boleh kosong");
       return;
     }
-    
-    // Prevent double submission
-    if (isSubmittingComment) {
-      return;
-    }
+    if (isSubmittingComment) return;
     
     setIsSubmittingComment(true);
     try {
@@ -291,15 +295,11 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
     }
   };
 
-  // Handler untuk menampilkan konfirmasi status change sebelum submit diagnosis
   const handleRequestStatusChange = (callback: () => Promise<void>) => {
-    // Simpan callback untuk diexecute setelah status change
     setDiagnosisSubmitCallback(() => callback);
-    // Tampilkan dialog konfirmasi
     diagnosaDialog.setShowStatusChangeConfirm(true);
   };
 
-  // Handler untuk confirm status change dan execute diagnosis submit
   const handleStatusChangeOnDiagnosisSubmit = async () => {
     if (ticket.status === "assigned") {
       try {
@@ -310,7 +310,6 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
         diagnosaDialog.setShowStatusChangeConfirm(false);
         setRefreshKey((prev) => prev + 1);
 
-        // Execute diagnosis submission after status is changed
         setTimeout(async () => {
           if (diagnosisSubmitCallback) {
             await diagnosisSubmitCallback();
@@ -319,13 +318,14 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
         }, 500);
       } catch (error: any) {
         console.error("Failed to change status:", error);
-        const errorMsg = error?.body?.message || "Gagal mengubah status tiket";
-        toast.error(errorMsg);
+        toast.error(error?.body?.message || "Gagal mengubah status tiket");
         diagnosaDialog.setShowStatusChangeConfirm(false);
         setDiagnosisSubmitCallback(null);
       }
     }
   };
+
+  const refreshData = () => setRefreshKey((prev) => prev + 1);
 
   // === RENDER ===
   return (
@@ -343,7 +343,54 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
         onShowCompleteDialog={() => {}}
       />
 
-      {/* Alerts */}
+      {/* --- PANEL AKSI PJ / SUPER ADMIN --- */}
+      {canAct && (
+        <Card className={`shadow-sm animate-in slide-in-from-top-2 ${isSuperAdmin ? 'border-purple-200 bg-purple-50/20' : 'border-blue-200 bg-blue-50/20'}`}>
+          <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h4 className={`font-semibold flex items-center gap-2 ${isSuperAdmin ? 'text-purple-900' : 'text-blue-900'}`}>
+                {isSuperAdmin ? <ShieldAlert className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />} 
+                {isSuperAdmin ? "Intervensi Super Admin" : "Aksi Penanganan"}
+              </h4>
+              <p className="text-sm text-muted-foreground mt-1">
+                {isSuperAdmin 
+                  ? "Anda memiliki akses penuh untuk mengelola tiket ini." 
+                  : "Anda sedang bertugas sebagai PJ tiket ini. Silakan proses."}
+              </p>
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+               <Button 
+                 variant="outline" 
+                 onClick={() => setTransferOpen(true)} 
+                 className={`flex-1 sm:flex-none hover:bg-opacity-50 ${isSuperAdmin ? 'border-purple-200 text-purple-700' : 'border-blue-200 text-blue-700'}`}
+               >
+                 <ArrowRightLeft className="mr-2 h-4 w-4"/> Delegasi
+               </Button>
+               <Button 
+                 onClick={() => setResolveOpen(true)} 
+                 className={`flex-1 sm:flex-none text-white ${isSuperAdmin ? 'bg-purple-600 hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'}`}
+               >
+                 <CheckCircle className="mr-2 h-4 w-4"/> Selesaikan
+               </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* --- ALERT: PUNYA ROLE TAPI SALAH MODE --- */}
+      {hasRightRoleButWrongMode && (
+        <Card className="border-amber-200 bg-amber-50/30 border-dashed">
+          <CardContent className="p-3 flex items-center gap-3 text-sm text-amber-800">
+            <Lock className="h-4 w-4" />
+            <span>
+              Tiket ini ditujukan untuk role <b>{ticket.current_assignee_role}</b>. 
+              Switch role Anda untuk memprosesnya.
+            </span>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Alerts Legacy */}
       {!ticket.service_category && (
         <TicketDetailAlerts
           ticket={ticket}
@@ -387,11 +434,11 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
 
       <div className="bg-white dark:bg-slate-900 rounded-lg border p-4 shadow-sm">
         <h3 className="text-sm font-semibold mb-2 text-slate-500 uppercase tracking-wider">
-          Tindak Lanjut (Workflow)
+          Riwayat Tindak Lanjut (Workflow)
         </h3>
         <DynamicWorkflowActions 
           ticketId={ticketId} 
-          onUpdate={() => setRefreshKey((prev) => prev + 1)} // Ini akan me-refresh seluruh halaman detail
+          onUpdate={refreshData}
         />
       </div>
 
@@ -400,9 +447,21 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
       {ticket.type === "zoom_meeting" && (
         <TicketProgressTrackerZoom ticket={ticket} />
       )}
-      {/* Teknisi Workflow - Removed: all alerts and actions moved to TicketDetailAlerts */}
 
       {/* ============== DIALOGS ============== */}
+
+      <ResolveTicketDialog 
+         open={resolveOpen} 
+         onOpenChange={setResolveOpen} 
+         ticket={ticket} 
+         onSuccess={refreshData} 
+      />
+      <TransferTicketDialog 
+         open={transferOpen} 
+         onOpenChange={setTransferOpen} 
+         ticket={ticket} 
+         onSuccess={refreshData} 
+      />
 
       {/* Approve */}
       <AlertDialog
@@ -547,7 +606,7 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Diagnosa Form - Full featured diagnosis form */}
+      {/* Diagnosa Form */}
       <TicketDiagnosisForm
         ticketId={ticketId}
         ticketNumber={ticket.ticketNumber}
@@ -563,7 +622,7 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
         onRequestStatusChange={handleRequestStatusChange}
       />
 
-      {/* Work Order - Form Dialog */}
+      {/* Work Order Form */}
       <WorkOrderForm
         isOpen={workOrderDialog.showSparepartDialog}
         onClose={() => workOrderDialog.setShowSparepartDialog(false)}

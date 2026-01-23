@@ -194,4 +194,29 @@ export const serviceCategoryApi = {
   delete: async (id: string) => api.delete(`/service-categories/${id}`),
 };
 
+export const availabilityApi = {
+  // Cek apakah rentang waktu tertentu kosong
+  check: async (resourceId: string, startDate: string, endDate: string) => {
+    const res = await api.get(`/availability/check?resource_id=${resourceId}&start_date=${startDate}&end_date=${endDate}`);
+    return res.data || res;
+  },
+
+  // Ambil semua jadwal booking untuk resource tertentu (untuk visualisasi kalender)
+  getEvents: async (resourceId: string) => {
+    const res = await api.get(`/availability/events/${resourceId}`);
+    return Array.isArray(res) ? res : (res.data || []);
+  }
+};
+
+export const ticketActionApi = {
+  // PJ Menyelesaikan Tiket (Mengirim Laporan / Action Data)
+  resolve: async (ticketId: string, payload: { notes?: string, action_data: any }) => {
+    return await api.post(`/tickets/${ticketId}/resolve`, payload);
+  },
+
+  // PJ Mengoper Tiket ke Role lain
+  transfer: async (ticketId: string, payload: { to_role: string, notes: string }) => {
+    return await api.post(`/tickets/${ticketId}/transfer`, payload);
+  }
+};
 export default api;
