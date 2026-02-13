@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { api, resourceApi, serviceCategoryApi, roleApi } from '@/lib/api'; // Pastikan roleApi sudah ada di lib/api.ts
+import { useForm, useWatch } from 'react-hook-form'; // [UPDATED] Added useWatch
+import { api, resourceApi, serviceCategoryApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,10 +13,10 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { 
-  ArrowLeft, Save, Plus, Pencil, Trash2, Box, Users, Settings, 
-  LayoutList, Loader2, GitPullRequest, FileInput, CalendarClock 
+  ArrowLeft, Save, Plus, Pencil, Trash2, Box, Settings, 
+  LayoutList, Loader2, GitPullRequest, FileInput, CalendarClock, TrafficCone, Users 
 } from 'lucide-react';
-import { SchemaBuilder, type FormFieldSchema } from './service-schema-builder'; // Import FormFieldSchema
+import { SchemaBuilder, type FormFieldSchema } from './service-schema-builder';
 
 interface ServiceCategoryDetailProps {
   categoryId: string;
@@ -26,7 +26,7 @@ interface ServiceCategoryDetailProps {
 export default function ServiceCategoryDetail({ categoryId, onBack }: ServiceCategoryDetailProps) {
   const [category, setCategory] = useState<any>(null);
   const [resources, setResources] = useState<any[]>([]);
-  const [roles, setRoles] = useState<any[]>([]); // State untuk Role List
+  const [users, setUsers] = useState<any[]>([]); 
   const [loading, setLoading] = useState(true);
   
   // State Modal Resource
@@ -41,15 +41,21 @@ export default function ServiceCategoryDetail({ categoryId, onBack }: ServiceCat
       type: 'service',
       is_active: true,
       
-      // --- FIELD BARU WORKFLOW ---
-      handling_role: '',      // PJ Default
-      is_resource_based: false, // Butuh Kalender?
+      // --- KONFIGURASI TRAFFIC  ---
+      target_role: 'admin_layanan', 
+      assignment_type: 'auto',      
+      default_assignee_id: '',
+      
+      is_resource_based: false, 
       
       // --- SCHEMA ---
-      form_schema: [] as FormFieldSchema[],   // Input User
-      action_schema: [] as FormFieldSchema[], // Output PJ
+      form_schema: [] as FormFieldSchema[],   
+      action_schema: [] as FormFieldSchema[], 
     },
   });
+
+  const assignmentType = useWatch({ control: settingsForm.control, name: 'assignment_type' });
+  const targetRole = useWatch({ control: settingsForm.control, name: 'target_role' });
 
   // Form Resource (Modal)
   const resourceForm = useForm({
@@ -59,16 +65,14 @@ export default function ServiceCategoryDetail({ categoryId, onBack }: ServiceCat
   const loadData = async () => {
     setLoading(true);
     try {
-      // 1. Parallel Load: Category & Roles
-      const [catData, rolesRes] = await Promise.all([
+      // 1. Parallel Load: Category & Users
+      const [catData, usersRes] = await Promise.all([
         serviceCategoryApi.getOne(categoryId),
-        roleApi.getAll().catch(() => []) // Fallback array kosong jika error
+        api.get('/users').catch(() => ({ data: [] }))
       ]);
 
-      // Handle Roles Data Structure
-      const rolesData = Array.isArray(rolesRes) ? rolesRes : rolesRes.data || [];
-      setRoles(rolesData);
-      
+      const usersList = Array.isArray(usersRes.data) ? usersRes.data : (usersRes.data?.data || []);
+      setUsers(usersList);
       setCategory(catData);
       
       // Reset Form dengan Data dari DB
@@ -78,8 +82,11 @@ export default function ServiceCategoryDetail({ categoryId, onBack }: ServiceCat
         type: catData.type,
         is_active: Boolean(catData.is_active),
         
-        // Populate Workflow Data
-        handling_role: catData.handling_role || '', // Default handling role
+        // Populate Traffic Config
+        target_role: catData.target_role || 'admin_layanan',
+        assignment_type: catData.assignment_type || 'auto',
+        default_assignee_id: catData.default_assignee_id ? String(catData.default_assignee_id) : '',
+        
         is_resource_based: Boolean(catData.is_resource_based),
         
         // Populate Schemas
@@ -92,7 +99,6 @@ export default function ServiceCategoryDetail({ categoryId, onBack }: ServiceCat
         const resData = await resourceApi.getByCategory(categoryId);
         setResources(Array.isArray(resData) ? resData : []);
       } catch (err) {
-        console.warn("Gagal load resources", err);
         setResources([]);
       }
 
@@ -109,14 +115,32 @@ export default function ServiceCategoryDetail({ categoryId, onBack }: ServiceCat
     if(categoryId) loadData(); 
   }, [categoryId]);
 
+  // Helper filter user sesuai role
+  const filteredUsers = targetRole 
+    ? users.filter((u: any) => {
+        const uRoles = Array.isArray(u.roles) ? u.roles : [u.role];
+        return uRoles.includes(targetRole);
+      })
+    : users;
+
   // --- HANDLERS UTAMA ---
 
   const onSaveSettings = async (data: any) => {
+    // Validasi Manual untuk Direct Assignment
+    if (data.assignment_type === 'direct' && !data.default_assignee_id) {
+      settingsForm.setError('default_assignee_id', { type: 'manual', message: 'Wajib memilih petugas' });
+      toast.error("Pilih petugas untuk metode Langsung");
+      return;
+    }
+
+    // Bersihkan jika bukan direct
+    if (data.assignment_type !== 'direct') {
+      data.default_assignee_id = null;
+    }
+
     try {
       await serviceCategoryApi.update(categoryId, data);
-      toast.success("Pengaturan & Workflow berhasil disimpan!");
-      // Tidak perlu loadData() full, cukup update local state jika perlu
-      // Tapi untuk aman loadData() oke juga.
+      toast.success("Pengaturan berhasil disimpan!");
       loadData(); 
     } catch (e: any) {
       console.error(e);
@@ -124,7 +148,7 @@ export default function ServiceCategoryDetail({ categoryId, onBack }: ServiceCat
     }
   };
 
-  // --- HANDLERS RESOURCE (Sama seperti sebelumnya) ---
+  // --- HANDLERS RESOURCE ---
 
   const openResourceModal = (res: any = null) => {
     setEditingResource(res);
@@ -153,7 +177,6 @@ export default function ServiceCategoryDetail({ categoryId, onBack }: ServiceCat
       }
       setResourceModalOpen(false);
       
-      // Reload resources only
       const updatedRes = await resourceApi.getByCategory(categoryId);
       setResources(Array.isArray(updatedRes) ? updatedRes : []);
     } catch (e) {
@@ -194,7 +217,6 @@ export default function ServiceCategoryDetail({ categoryId, onBack }: ServiceCat
             <span>{category.description || "Tidak ada deskripsi"}</span>
           </div>
         </div>
-        {/* Tombol Simpan Global di Header agar mudah diakses */}
         <div className="ml-auto">
            <Button onClick={settingsForm.handleSubmit(onSaveSettings)} className="bg-blue-600 hover:bg-blue-700">
               <Save className="mr-2 h-4 w-4" /> Simpan Semua Perubahan
@@ -211,7 +233,7 @@ export default function ServiceCategoryDetail({ categoryId, onBack }: ServiceCat
                 <Settings className="h-4 w-4" /> Umum & Input
               </TabsTrigger>
               <TabsTrigger value="workflow" className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                <GitPullRequest className="h-4 w-4" /> Workflow & Output
+                <GitPullRequest className="h-4 w-4" /> Workflow & Traffic
               </TabsTrigger>
               <TabsTrigger value="resources" className="gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
                 <Box className="h-4 w-4" /> Daftar Resource
@@ -222,7 +244,6 @@ export default function ServiceCategoryDetail({ categoryId, onBack }: ServiceCat
             <TabsContent value="settings" className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
-                {/* Kiri: Info Dasar */}
                 <Card className="md:col-span-1 h-fit">
                   <CardHeader>
                     <CardTitle className="text-base">Informasi Dasar</CardTitle>
@@ -242,9 +263,9 @@ export default function ServiceCategoryDetail({ categoryId, onBack }: ServiceCat
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                           <SelectContent>
-                            <SelectItem value="service">Service (Umum)</SelectItem>
                             <SelectItem value="booking">Booking (Peminjaman)</SelectItem>
-                            <SelectItem value="repair">Repair (Perbaikan)</SelectItem>
+                            <SelectItem value="repair">Perbaikan (Ticketing)</SelectItem>
+                            <SelectItem value="service">Layanan Umum</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -269,7 +290,6 @@ export default function ServiceCategoryDetail({ categoryId, onBack }: ServiceCat
                   </CardContent>
                 </Card>
 
-                {/* Kanan: Form Input User */}
                 <Card className="md:col-span-2 border-blue-200 shadow-sm">
                   <CardHeader className="bg-blue-50/50 border-b border-blue-100 py-4">
                     <div className="flex items-center justify-between">
@@ -292,57 +312,100 @@ export default function ServiceCategoryDetail({ categoryId, onBack }: ServiceCat
               </div>
             </TabsContent>
 
-            {/* --- TAB 2: WORKFLOW & OUTPUT SCHEMA (BARU) --- */}
+            {/* --- TAB 2: WORKFLOW & TRAFFIC CONTROL --- */}
             <TabsContent value="workflow" className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
-                {/* Kiri: Konfigurasi PJ */}
-                <Card className="md:col-span-1 h-fit">
-                  <CardHeader>
-                    <CardTitle className="text-base">Konfigurasi Penanganan</CardTitle>
-                    <CardDescription>Siapa yang memproses tiket ini?</CardDescription>
+                {/* Kiri: Konfigurasi Traffic (UPDATED UI) */}
+                <Card className="md:col-span-1 h-fit border-indigo-200 shadow-sm">
+                  <CardHeader className="bg-indigo-50/50 border-b border-indigo-100 py-4">
+                    <CardTitle className="text-base text-indigo-900 flex items-center gap-2">
+                        <TrafficCone className="h-4 w-4"/> Lalu Lintas Tiket
+                    </CardTitle>
+                    <CardDescription className="text-indigo-800/70">Aturan distribusi tugas.</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-6">
+                  <CardContent className="space-y-6 pt-6">
                     
-                    {/* Pilih Role PJ */}
-                    <FormField control={settingsForm.control} name="handling_role" rules={{required: "Role PJ wajib dipilih"}} render={({ field }) => (
+                    {/* Pilih Role Target */}
+                    <FormField control={settingsForm.control} name="target_role" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Default Penanggung Jawab (PJ)</FormLabel>
+                        <FormLabel>Role Penanggung Jawab</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl><SelectTrigger><SelectValue placeholder="Pilih Role" /></SelectTrigger></FormControl>
                           <SelectContent>
-                            {roles.length > 0 ? (
-                              roles.map((role: any) => (
-                                <SelectItem key={role.id} value={role.code}>
-                                  {role.name}
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <div className="p-2 text-xs text-center text-muted-foreground">Loading roles...</div>
-                            )}
+                            <SelectItem value="admin_layanan">Admin Layanan</SelectItem>
+                            <SelectItem value="admin_penyedia">Admin Penyedia</SelectItem>
+                            <SelectItem value="teknisi">Teknisi IT / Umum</SelectItem>
+                            <SelectItem value="staff_ga">Staff Umum (GA)</SelectItem>
+                            <SelectItem value="kepala_bagian">Kepala Bagian</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormDescription className="text-xs">
-                          Tiket baru akan otomatis diarahkan ke role ini.
+                        <FormDescription className="text-[10px]">
+                          Divisi utama yang menangani layanan ini.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )} />
 
-                    {/* Toggle Resource Based */}
-                    <FormField control={settingsForm.control} name="is_resource_based" render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-slate-50">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-sm font-medium flex items-center gap-2">
-                            <CalendarClock className="h-4 w-4 text-blue-600"/> Mode Booking
-                          </FormLabel>
-                          <FormDescription className="text-xs">
-                            Aktifkan untuk layanan berbasis jadwal (Cek ketersediaan).
-                          </FormDescription>
-                        </div>
-                        <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                    {/* Pilih Assignment Strategy */}
+                    <FormField control={settingsForm.control} name="assignment_type" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Metode Pembagian Tugas</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="auto">🤖 Otomatis (Smart)</SelectItem>
+                            <SelectItem value="manual">✋ Manual (Pool)</SelectItem>
+                            <SelectItem value="direct">🎯 Langsung (Personal)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription className="text-[10px]">
+                          {field.value === 'auto' && 'Algoritma akan memilih user ter-luang yang aktif.'}
+                          {field.value === 'manual' && 'Tiket masuk antrian role, petugas klaim manual.'}
+                          {field.value === 'direct' && 'Tiket selalu diberikan ke satu orang spesifik.'}
+                        </FormDescription>
                       </FormItem>
                     )} />
+
+                    {/* Pilih User Default (Jika Direct) */}
+                    {assignmentType === 'direct' && (
+                        <FormField control={settingsForm.control} name="default_assignee_id" render={({ field }) => (
+                        <FormItem className="animate-in fade-in zoom-in-95 duration-200 bg-yellow-50 p-3 rounded-md border border-yellow-200">
+                            <FormLabel className="text-yellow-800">Petugas Spesifik</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Pilih User..." /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {filteredUsers.length > 0 ? (
+                                filteredUsers.map((u: any) => (
+                                    <SelectItem key={u.id} value={String(u.id)}>
+                                    {u.name}
+                                    </SelectItem>
+                                ))
+                                ) : (
+                                <div className="p-2 text-xs text-center text-muted-foreground">Tidak ada user di role ini</div>
+                                )}
+                            </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )} />
+                    )}
+
+                    <div className="border-t pt-4 mt-2">
+                        <FormField control={settingsForm.control} name="is_resource_based" render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-white">
+                            <div className="space-y-0.5">
+                            <FormLabel className="text-sm font-medium flex items-center gap-2">
+                                <CalendarClock className="h-4 w-4 text-blue-600"/> Mode Jadwal
+                            </FormLabel>
+                            <FormDescription className="text-[10px]">
+                                Aktifkan jika layanan ini berbasis booking waktu/aset.
+                            </FormDescription>
+                            </div>
+                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                        </FormItem>
+                        )} />
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -361,7 +424,6 @@ export default function ServiceCategoryDetail({ categoryId, onBack }: ServiceCat
                     <FormField control={settingsForm.control} name="action_schema" render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          {/* Reuse SchemaBuilder lagi, tapi bind ke action_schema */}
                           <SchemaBuilder 
                             value={field.value} 
                             onChange={field.onChange} 
@@ -376,7 +438,7 @@ export default function ServiceCategoryDetail({ categoryId, onBack }: ServiceCat
               </div>
             </TabsContent>
 
-            {/* --- TAB 3: RESOURCES (Sama seperti sebelumnya) --- */}
+            {/* --- TAB 3: RESOURCES --- */}
             <TabsContent value="resources">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between py-4">
@@ -449,7 +511,7 @@ export default function ServiceCategoryDetail({ categoryId, onBack }: ServiceCat
         </form>
       </Form>
 
-      {/* Modal Resource tetap sama */}
+      {/* Modal Resource */}
       <Dialog open={resourceModalOpen} onOpenChange={setResourceModalOpen}>
         <DialogContent>
           <DialogHeader>

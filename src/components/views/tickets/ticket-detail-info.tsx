@@ -88,8 +88,8 @@ export const TicketDetailHeader: React.FC<TicketDetailHeaderProps> = ({
                 ["closed", "selesai", "approved", "resolved", "completed"].includes(ticket.status)
                   ? "default"
                   : ["rejected", "cancelled", "closed_unrepairable"].includes(ticket.status)
-                  ? "destructive"
-                  : "secondary"
+                    ? "destructive"
+                    : "secondary"
               }
               className="capitalize"
             >
@@ -149,7 +149,7 @@ export const TicketDetailInfo: React.FC<TicketDetailInfoProps> = ({
   const [showDiagnosisModal, setShowDiagnosisModal] = useState(false);
   const [diagnosisData, setDiagnosisData] = useState<any>(null);
   const [loadingDiagnosis, setLoadingDiagnosis] = useState(false);
-  
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // PRIORITASKAN DATA DARI OBJEK TICKET (Backend Relations)
@@ -228,7 +228,7 @@ export const TicketDetailInfo: React.FC<TicketDetailInfoProps> = ({
     if(role.includes('admin')) colorClass = "bg-purple-100 text-purple-700";
     if(role.includes('teknisi')) colorClass = "bg-orange-100 text-orange-700";
     if(role.includes('super')) colorClass = "bg-red-100 text-red-700";
-    
+
     return (
       <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ml-2 ${colorClass}`}>
         {role.replace(/_/g, ' ').toUpperCase()}
@@ -238,10 +238,10 @@ export const TicketDetailInfo: React.FC<TicketDetailInfoProps> = ({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      
+
       {/* KOLOM KIRI: DISKUSI & TIMELINE (2/3 Lebar) */}
       <div className="lg:col-span-2 space-y-6 order-2 lg:order-1">
-        
+
         {/* DISKUSI CARD */}
         <Card className="flex flex-col h-[600px] shadow-sm border-slate-200">
           <CardHeader className="pb-3 border-b bg-slate-50/50">
@@ -249,7 +249,7 @@ export const TicketDetailInfo: React.FC<TicketDetailInfoProps> = ({
               <MessageSquare className="h-4 w-4 text-blue-500" /> Diskusi & Aktivitas
             </CardTitle>
           </CardHeader>
-          
+
           {/* CHAT AREA */}
           <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-50/30" ref={scrollRef}>
             {commentsLoading && comments.length === 0 ? (
@@ -264,10 +264,10 @@ export const TicketDetailInfo: React.FC<TicketDetailInfoProps> = ({
               <>
                 {hasMore && (
                   <div className="text-center mb-4">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={onLoadMoreComments} 
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onLoadMoreComments}
                       disabled={commentsLoading}
                       className="text-xs text-slate-500"
                     >
@@ -277,15 +277,15 @@ export const TicketDetailInfo: React.FC<TicketDetailInfoProps> = ({
                 )}
                 {comments.map((c: any) => {
                   const isSystem = c.user_role === 'system';
-                  
+
                   if (isSystem) {
                     return (
-                        <div key={c.id} className="flex justify-center my-4">
-                            <span className="bg-slate-100 text-slate-500 text-[10px] px-3 py-1 rounded-full border border-slate-200 flex items-center gap-1.5">
-                                <Clock className="h-3 w-3" />
-                                {c.content} • {formatDistanceToNow(new Date(c.created_at), { addSuffix: true, locale: id })}
-                            </span>
-                        </div>
+                      <div key={c.id} className="flex justify-center my-4">
+                        <span className="bg-slate-100 text-slate-500 text-[10px] px-3 py-1 rounded-full border border-slate-200 flex items-center gap-1.5">
+                          <Clock className="h-3 w-3" />
+                          {c.content} • {formatDistanceToNow(new Date(c.created_at), { addSuffix: true, locale: id })}
+                        </span>
+                      </div>
                     )
                   }
 
@@ -304,7 +304,7 @@ export const TicketDetailInfo: React.FC<TicketDetailInfoProps> = ({
                           </span>
                           {/* Role Badge */}
                           {c.user_role && renderRoleBadge(c.user_role)}
-                          
+
                           <span className="text-[10px] text-slate-400 ml-1">
                             {formatDistanceToNow(new Date(c.created_at), { addSuffix: true, locale: id })}
                           </span>
@@ -323,14 +323,14 @@ export const TicketDetailInfo: React.FC<TicketDetailInfoProps> = ({
           {/* INPUT AREA */}
           <div className="p-4 border-t bg-white rounded-b-lg">
             <div className="flex gap-3 items-end">
-              <Textarea 
+              <Textarea
                 value={comment}
                 onChange={(e) => onCommentChange(e.target.value)}
                 placeholder="Tulis balasan atau catatan..."
                 className="min-h-[40px] max-h-[120px] resize-none focus-visible:ring-blue-500 py-3"
               />
-              <Button 
-                onClick={onAddComment} 
+              <Button
+                onClick={onAddComment}
                 disabled={isSubmittingComment || !comment.trim()}
                 className="h-[40px] w-[40px] p-0 bg-blue-600 hover:bg-blue-700 shrink-0 rounded-full"
               >
@@ -342,39 +342,39 @@ export const TicketDetailInfo: React.FC<TicketDetailInfoProps> = ({
 
         {/* WORK ORDERS (Legacy) */}
         {ticket.type === "perbaikan" && getWorkOrdersByTicket(ticket.id).length > 0 && (
-            <Card>
-                <CardHeader className="pb-3 border-b">
-                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                        <FolderKanban className="h-4 w-4" /> Work Orders
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 space-y-3">
-                    {getWorkOrdersByTicket(ticket.id).map((wo) => (
-                        <div key={wo.id} className="bg-slate-50 rounded-lg p-3 border flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                                {wo.type === "sparepart" ? (
-                                    <Package className="h-4 w-4 text-purple-600" />
-                                ) : (
-                                    <Truck className="h-4 w-4 text-orange-600" />
-                                )}
-                                <div>
-                                    <p className="text-sm font-medium">{wo.type === 'sparepart' ? 'Permintaan Sparepart' : 'Jasa Vendor'}</p>
-                                    <p className="text-xs text-slate-500">{new Date(wo.createdAt).toLocaleDateString('id-ID')}</p>
-                                </div>
-                            </div>
-                            <Badge variant="outline" className="text-[10px] uppercase">
-                                {wo.status.replace("_", " ")}
-                            </Badge>
-                        </div>
-                    ))}
-                </CardContent>
-            </Card>
+          <Card>
+            <CardHeader className="pb-3 border-b">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <FolderKanban className="h-4 w-4" /> Work Orders
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-3">
+              {getWorkOrdersByTicket(ticket.id).map((wo) => (
+                <div key={wo.id} className="bg-slate-50 rounded-lg p-3 border flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    {wo.type === "sparepart" ? (
+                      <Package className="h-4 w-4 text-purple-600" />
+                    ) : (
+                      <Truck className="h-4 w-4 text-orange-600" />
+                    )}
+                    <div>
+                      <p className="text-sm font-medium">{wo.type === 'sparepart' ? 'Permintaan Sparepart' : 'Jasa Vendor'}</p>
+                      <p className="text-xs text-slate-500">{new Date(wo.createdAt).toLocaleDateString('id-ID')}</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] uppercase">
+                    {wo.status.replace("_", " ")}
+                  </Badge>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         )}
       </div>
 
       {/* KOLOM KANAN: METADATA (1/3 Lebar) */}
       <div className="space-y-6 order-1 lg:order-2">
-        
+
         {/* CARD 1: PELAPOR & PJ */}
         <Card>
           <CardHeader className="pb-3 border-b bg-slate-50/30">
@@ -385,114 +385,114 @@ export const TicketDetailInfo: React.FC<TicketDetailInfoProps> = ({
           <CardContent className="p-0 mb-6">
             {/* Pelapor */}
             <div className="p-4 flex items-center gap-3 border-b border-dashed">
-                <Avatar className="h-9 w-9 border">
-                    <AvatarFallback>{getInitials(activeTicketOwner?.name || "?")}</AvatarFallback>
-                </Avatar>
-                <div className="overflow-hidden">
-                    <p className="text-xs text-slate-500 mb-0.5">Pelapor</p>
-                    <p className="text-sm font-bold text-slate-900 truncate">
-                        {activeTicketOwner?.name || "Tidak diketahui"}
-                    </p>
-                    <p className="text-xs text-slate-500 truncate">
-                        {activeTicketOwner?.unit_kerja || activeTicketOwner?.unitKerja || activeTicketOwner?.jabatan || "Pegawai"}
-                    </p>
-                </div>
+              <Avatar className="h-9 w-9 border">
+                <AvatarFallback>{getInitials(activeTicketOwner?.name || "?")}</AvatarFallback>
+              </Avatar>
+              <div className="overflow-hidden">
+                <p className="text-xs text-slate-500 mb-0.5">Pelapor</p>
+                <p className="text-sm font-bold text-slate-900 truncate">
+                  {activeTicketOwner?.name || "Tidak diketahui"}
+                </p>
+                <p className="text-xs text-slate-500 truncate">
+                  {activeTicketOwner?.unit_kerja || activeTicketOwner?.unitKerja || activeTicketOwner?.jabatan || "Pegawai"}
+                </p>
+              </div>
             </div>
 
             {/* PJ */}
             <div className="p-4 flex items-center gap-3">
-                {activeAssignedUser ? (
-                    <>
-                        <Avatar className="h-9 w-9 border bg-blue-50 text-blue-600">
-                            <AvatarFallback>{getInitials(activeAssignedUser.name)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <p className="text-xs text-slate-500 mb-0.5">Penanggung Jawab</p>
-                            <p className="text-sm font-bold text-slate-900">{activeAssignedUser.name}</p>
-                            <span className="text-[10px] text-blue-600 font-medium bg-blue-50 px-1.5 py-0.5 rounded mt-1 inline-block">
-                                {activeAssignedUser.role?.replace('_', ' ').toUpperCase()}
-                            </span>
-                        </div>
-                    </>
-                ) : (
-                    <div className="flex items-center gap-3 w-full opacity-60">
-                        <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center border border-dashed">
-                            <UserIcon className="h-4 w-4 text-slate-400" />
-                        </div>
-                        <div>
-                            <p className="text-xs text-slate-500">Penanggung Jawab</p>
-                            <p className="text-sm italic text-slate-400">
-                                {ticket.status === 'resolved' || ticket.status === 'completed' 
-                                  ? "Selesai (Arsip)" 
-                                  : (ticket as any).current_assignee_role 
-                                    ? `Menunggu ${(ticket as any).current_assignee_role.replace('_', ' ')}`
-                                    : "Belum ditugaskan"}
-                            </p>
-                        </div>
-                    </div>
-                )}
+              {activeAssignedUser ? (
+                <>
+                  <Avatar className="h-9 w-9 border bg-blue-50 text-blue-600">
+                    <AvatarFallback>{getInitials(activeAssignedUser.name)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-xs text-slate-500 mb-0.5">Penanggung Jawab</p>
+                    <p className="text-sm font-bold text-slate-900">{activeAssignedUser.name}</p>
+                    <span className="text-[10px] text-blue-600 font-medium bg-blue-50 px-1.5 py-0.5 rounded mt-1 inline-block">
+                      {activeAssignedUser.role?.replace('_', ' ').toUpperCase()}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-3 w-full opacity-60">
+                  <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center border border-dashed">
+                    <UserIcon className="h-4 w-4 text-slate-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Penanggung Jawab</p>
+                    <p className="text-sm italic text-slate-400">
+                      {ticket.status === 'resolved' || ticket.status === 'completed'
+                        ? "Selesai (Arsip)"
+                        : (ticket as any).current_assignee_role
+                          ? `Menunggu ${(ticket as any).current_assignee_role.replace('_', ' ')}`
+                          : "Belum ditugaskan"}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
 
         {/* CARD 2: INFORMASI ASET (Khusus Perbaikan) */}
         {ticket.type === "perbaikan" && (
-            <Card>
-                <CardHeader className="pb-3 border-b bg-slate-50/30">
-                    <CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                        Aset Terkait
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 space-y-4">
-                    {loadingAsset ? (
-                        <div className="text-center py-4 text-xs text-slate-400">Memuat data aset...</div>
-                    ) : (
-                        <>
-                            <div className="flex items-start gap-3">
-                                <Package className="h-4 w-4 text-slate-400 mt-0.5" />
-                                <div>
-                                    <p className="text-xs text-slate-500">Nama Barang</p>
-                                    <p className="text-sm font-medium text-slate-800">
-                                        {assetData?.asset_name || (ticket as any).assetName || (ticket as any).nama_barang || "-"}
-                                    </p>
-                                </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="flex items-start gap-3">
-                                    <Barcode className="h-4 w-4 text-slate-400 mt-0.5" />
-                                    <div>
-                                        <p className="text-xs text-slate-500">Kode / NUP</p>
-                                        <p className="text-xs font-mono bg-slate-100 px-1 rounded inline-block mt-0.5">
-                                            {(ticket as any).kode_barang || (ticket as any).assetCode} / {(ticket as any).nup || (ticket as any).assetNUP}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-start gap-3">
-                                    <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />
-                                    <div>
-                                        <p className="text-xs text-slate-500">Lokasi</p>
-                                        <p className="text-xs font-medium">
-                                            {(ticket as any).asset_location || (ticket as any).assetLocation || assetData?.lokasi || "-"}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+          <Card>
+            <CardHeader className="pb-3 border-b bg-slate-50/30">
+              <CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Aset Terkait
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4">
+              {loadingAsset ? (
+                <div className="text-center py-4 text-xs text-slate-400">Memuat data aset...</div>
+              ) : (
+                <>
+                  <div className="flex items-start gap-3">
+                    <Package className="h-4 w-4 text-slate-400 mt-0.5" />
+                    <div>
+                      <p className="text-xs text-slate-500">Nama Barang</p>
+                      <p className="text-sm font-medium text-slate-800">
+                        {assetData?.asset_name || (ticket as any).assetName || (ticket as any).nama_barang || "-"}
+                      </p>
+                    </div>
+                  </div>
 
-                            {(ticket as any).diagnosis && (
-                                <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    className="w-full mt-2 text-xs"
-                                    onClick={handleOpenDiagnosisModal}
-                                >
-                                    <FileText className="h-3 w-3 mr-2" /> Lihat Diagnosis
-                                </Button>
-                            )}
-                        </>
-                    )}
-                </CardContent>
-            </Card>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-start gap-3">
+                      <Barcode className="h-4 w-4 text-slate-400 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-slate-500">Kode / NUP</p>
+                        <p className="text-xs font-mono bg-slate-100 px-1 rounded inline-block mt-0.5">
+                          {(ticket as any).kode_barang || (ticket as any).assetCode} / {(ticket as any).nup || (ticket as any).assetNUP}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-slate-500">Lokasi</p>
+                        <p className="text-xs font-medium">
+                          {(ticket as any).asset_location || (ticket as any).assetLocation || assetData?.lokasi || "-"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {(ticket as any).diagnosis && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-2 text-xs"
+                      onClick={handleOpenDiagnosisModal}
+                    >
+                      <FileText className="h-3 w-3 mr-2" /> Lihat Diagnosis
+                    </Button>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {/* CARD 3: META INFO & ATTACHMENTS */}
@@ -504,7 +504,7 @@ export const TicketDetailInfo: React.FC<TicketDetailInfoProps> = ({
                 {ticket.description}
               </p>
             </div>
-            
+
             {attachmentList.length > 0 && (
               <>
                 <Separator />
@@ -521,7 +521,7 @@ export const TicketDetailInfo: React.FC<TicketDetailInfoProps> = ({
                       >
                         <Paperclip className="h-3 w-3 text-slate-400 group-hover:text-blue-500" />
                         <span className="text-xs text-slate-600 truncate group-hover:text-blue-700">
-                            {att.name || `Lampiran ${idx + 1}`}
+                          {att.name || `Lampiran ${idx + 1}`}
                         </span>
                       </a>
                     ))}
