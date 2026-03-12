@@ -23,6 +23,11 @@ export function resolveApiUrl(path: string): string {
 export type ApiError = Error & { status?: number; body?: unknown };
 
 async function handleResponse<T>(res: Response): Promise<T> {
+  // Cek status 204 No Content secara eksplisit
+  if (res.status === 204) {
+    return {} as T;
+  }
+
   const contentType = res.headers.get('content-type') || '';
   const isJson = contentType.includes('application/json');
   const data = isJson ? await res.json().catch(() => undefined) : await res.text();
@@ -33,6 +38,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
     });
     throw err;
   }
+
   return data as T;
 }
 
@@ -44,10 +50,11 @@ export async function apiFetch<T = unknown>(path: string, init?: RequestInit): P
   if (!headers.has('Content-Type') && init?.body && !(init.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
   }
-  
+
   // --- PERBAIKAN UTAMA DI SINI ---
   // Prioritaskan 'token' dari localStorage (sesuai Login SSO & Manual)
   // Fallback ke 'auth_token' sessionStorage (untuk jaga-jaga legacy code)
+  
   const token = typeof window !== 'undefined' 
     ? (localStorage.getItem('token') || sessionStorage.getItem('auth_token')) 
     : null;

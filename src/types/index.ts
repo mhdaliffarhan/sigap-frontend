@@ -57,6 +57,7 @@ export interface User {
   isActive: boolean;
   failedLoginAttempts: number;
   lockedUntil?: string;
+  isOnLeave?: boolean;
 }
 
 export interface Attachment {

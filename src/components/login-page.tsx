@@ -12,7 +12,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
 import { Alert, AlertDescription } from "./ui/alert";
-import { Eye, EyeOff, AlertCircle, Mail, User as UserIcon, LogIn } from "lucide-react"; 
+import { Eye, EyeOff, AlertCircle, Mail, User as UserIcon, LogIn } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -47,9 +47,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const metalIconWrapper = "mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 shadow-[0_8px_16px_rgba(0,0,0,0.15),inset_0_4px_6px_rgba(255,255,255,0.3)] border-[6px] border-[#E2E8F0] ring-1 ring-white";
   const soapAlertStyle = "mb-4 rounded-2xl border border-blue-200 bg-blue-50/80 shadow-[inset_0_0_10px_rgba(59,130,246,0.1)] backdrop-blur-sm";
 
-  // --- STYLE TOMBOL SSO (DISTINCT / OFFICIAL LOOK) ---
-  // Dibuat berbeda dari tombol Sigap: Kotak (rounded-md), Solid Color, Flat Shadow
-  const ssoButtonStyle = "w-full h-12 rounded-lg bg-[#0F172A] hover:bg-[#1E293B] text-white border border-slate-800 shadow-md flex items-center justify-center gap-3 transition-all active:scale-[0.99]";
+  // --- STYLE TOMBOL SSO (PINTU BRANDING - WHITE/CLEAN) ---
+  const ssoButtonStyle = "w-full h-14 rounded-2xl bg-white text-slate-800 font-black shadow-md border border-slate-200 flex items-center justify-center gap-4 transition-all hover:bg-slate-50 active:scale-[0.98] group";
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -94,7 +93,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
       if (response.access_token) {
         localStorage.setItem("token", response.access_token);
-        sessionStorage.setItem("auth_token", response.access_token); 
+        sessionStorage.setItem("auth_token", response.access_token);
       }
 
       if (formData.rememberMe) {
@@ -137,8 +136,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       console.error("Login error:", err);
       const errorMessage =
         err?.body?.message ||
-        err?.body?.errors?.username?.[0] || 
-        err?.body?.errors?.email?.[0] || 
+        err?.body?.errors?.username?.[0] ||
+        err?.body?.errors?.email?.[0] ||
         "Username atau password tidak valid";
       setError(errorMessage);
 
@@ -327,10 +326,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                   onClick={handleSsoLogin}
                   disabled={isLoading}
                 >
-                  <div className="h-6 w-6 flex items-center justify-center bg-white rounded-full p-0.5">
-                     <img src="/images/bps.png" className="w-full h-full object-contain" alt="BPS" />
-                  </div>
-                  <span className="font-semibold text-[15px] tracking-wide">Login SSO BPS NTB</span>
+                  <img src="/images/logo-pintu.png" className="h-6 w-6 group-hover:rotate-12 transition-transform" alt="PINTU" />
+                  <span className="border-l border-slate-200 pl-4">MASUK DENGAN PINTU</span>
                 </Button>
               </div>
 
