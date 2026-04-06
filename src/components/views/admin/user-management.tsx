@@ -76,6 +76,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [resetPasswordValue, setResetPasswordValue] = useState('');
   
   const [editFormData, setEditFormData] = useState({
     name: '',
@@ -226,8 +228,32 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
         unitKerja: '',
         phone: '',
       });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!selectedUser || !resetPasswordValue) return;
+
+    setIsSubmitting(true);
+    try {
+      await api.post(`users/${selectedUser.id}/reset-password`, { 
+        password: resetPasswordValue 
+      });
+
+      addAuditLog({
+        userId: currentUser.id,
+        action: 'ADMIN_RESET_PASSWORD',
+        details: `Reset password for user ${selectedUser.email}`,
+      });
+
+      toast.success('Password berhasil direset');
+      setShowResetDialog(false);
+      setResetPasswordValue('');
+      setSelectedUser(null);
     } catch (err: any) {
-      handleApiError(err, 'Gagal membuat user');
+      handleApiError(err, 'Gagal meriset password');
     } finally {
       setIsSubmitting(false);
     }
@@ -293,7 +319,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
 
     const matchesRole = filterRole === 'all' || 
                         user.role === filterRole || 
-                        (Array.isArray(user.roles) && user.roles.includes(filterRole));
+                        (Array.isArray(user.roles) && (user.roles as string[]).includes(filterRole));
                         
     const matchesStatus = filterStatus === 'all' ||
       (filterStatus === 'active' && user.isActive) ||
@@ -380,6 +406,11 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                 setSelectedUser(user);
                 setShowDeleteDialog(true);
               }}
+              onResetPassword={(user) => {
+                setSelectedUser(user);
+                setResetPasswordValue(''); // Clear previous
+                setShowResetDialog(true);
+              }}
               onToggleStatus={handleToggleStatus}
               getRoleBadge={getRoleBadge}
             />
@@ -410,6 +441,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
         onDeleteSubmit={handleDeleteUser}
         currentUserRole={currentUser.role}
         
+        showResetDialog={showResetDialog}
+        onResetDialogChange={setShowResetDialog}
+        resetPasswordValue={resetPasswordValue}
+        onResetPasswordChange={setResetPasswordValue}
+        onResetPasswordSubmit={handleResetPassword}
+
         availableRoles={availableRoles} 
       />
       

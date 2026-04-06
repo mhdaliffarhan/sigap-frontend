@@ -6,7 +6,6 @@ import { ScrollArea } from "./ui/scroll-area";
 import {
   Home,
   TicketIcon,
-  Wrench,
   PlusCircle,
   Video,
   Users,
@@ -105,7 +104,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ease: isMobile ? "easeInOut" : "easeInOut",
         }}
         className={`
-          flex flex-col bg-white
+          flex flex-col glass-sidebar shadow-none
           
           // Base (Desktop) Styles
           ${!collapsed ? "md:relative md:h-full" : "md:absolute md:left-0 md:top-0 md:bottom-0 md:z-40"}
@@ -185,9 +184,7 @@ const SidebarMenuItem: React.FC<SidebarMenuItemProps> = ({
   // Background styles - only show button effect for active or collapsed state
   const getBackground = () => {
     if (isActive) {
-      return isHovered
-        ? "radial-gradient(ellipse at center, #cceaff 0%, #b5dff8 60%, #a0d4f0 100%)"
-        : "radial-gradient(ellipse at center, #d8f0ff 0%, #C2E7FF 60%, #b5e0fc 100%)";
+      return "rgba(59, 130, 246, 0.08)";
     }
     // Inactive: only show effect when collapsed OR hovered
     if (!showExpanded) {
@@ -221,9 +218,7 @@ const SidebarMenuItem: React.FC<SidebarMenuItemProps> = ({
 
   const getBorder = () => {
     if (isActive) {
-      return isHovered
-        ? "1px solid rgba(140,200,235,0.7)"
-        : "1px solid rgba(160,210,240,0.6)";
+      return "none";
     }
     // Inactive: only show border when collapsed OR hovered
     if (!showExpanded) {
@@ -244,7 +239,7 @@ const SidebarMenuItem: React.FC<SidebarMenuItemProps> = ({
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="w-full h-12 flex items-center m-0 p-0 relative max-md:justify-start max-md:px-4"
+      className={`w-full h-12 flex items-center m-0 p-0 relative max-md:justify-start max-md:px-4 ${isActive ? 'premium-sidebar-item-active' : ''}`}
     >
       {/* Icon container - absolute on desktop, relative flex on mobile */}
       <div className="absolute left-3 flex items-center justify-center w-6 h-6 z-10 max-md:static max-md:mr-3 max-md:flex-shrink-0">
@@ -314,16 +309,9 @@ const getMenuItemsForRole = (role: UserRole): MenuItem[] => {
     },
     
     {
-      id: "create-ticket-perbaikan" as ViewType,
-      label: "Perbaikan Barang",
-      icon: Wrench,
-      roles: ["pegawai"],
-    },
-    
-    {
-      id: "zoom-booking" as ViewType,
-      label: "Booking Zoom",
-      icon: Video,
+      id: "services" as ViewType,
+      label: "Katalog Layanan",
+      icon: Layers,
       roles: ["pegawai"],
     },
     {
@@ -365,8 +353,8 @@ const getMenuItemsForRole = (role: UserRole): MenuItem[] => {
     },
     {
       id: "service-categories" as ViewType,
-      label: "Katalog Layanan",
-      icon: Layers, // Import icon Layers
+      label: "Manajemen Katalog",
+      icon: Layers, 
       roles: ["super_admin", "admin_layanan"],
     },
     // ----------------------------------------

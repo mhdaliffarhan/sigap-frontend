@@ -1,73 +1,77 @@
-# React + TypeScript + Vite
+# SIGAP Frontend (React 19 + Vite)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend aplikasi SIGAP (Sistem Informasi dan Layanan), dibangun menggunakan teknologi modern React 19, Vite, dan Tailwind CSS 4.
 
-Currently, two official plugins are available:
+## 🚀 Persyaratan Sistem
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Node.js**: ^18.0 (Direkomendasikan versi LTS terbaru)
+- **npm**: ^9.0 (atau Yarn / pnpm)
 
-## React Compiler
+## 🛠️ Instalasi Awal
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Ikuti langkah-langkah berikut untuk menjalankan aplikasi di lingkungan pengembangan:
 
-## Expanding the ESLint configuration
+1. **Clone Repository**
+   ```bash
+   git clone <repository-url>
+   cd sigap-frontend
+   ```
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+2. **Instal Dependensi**
+   ```bash
+   npm install
+   ```
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+3. **Konfigurasi Environment**
+   Buka file `.env` (atau salin dari `.env.example`) dan sesuaikan URL API Backend:
+   ```env
+   VITE_API_BASE_URL=http://localhost:8000/api
+   ```
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+4. **Jalankan Aplikasi**
+   ```bash
+   npm run dev
+   ```
+   Aplikasi akan berjalan secara default di `http://localhost:5173`.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## ✨ Fitur Utama
+
+- **Dashboard Interaktif**: Statistik tiket dan aktivitas dalam bentuk chart (menggunakan Recharts).
+- **Manajemen Aset BMN**: Pencatatan dan pengelolaan aset negara secara digital.
+- **Dynamic Form Engine**: Sistem form yang fleksibel untuk berbagai jenis layanan layanan.
+- **Sistem Tiket & Workflow**: Alur pengajuan tiket dari Pegawai hingga penyelesaian oleh Teknisi/PJ.
+- **Manajemen Profil**: Pengaturan akun, ganti password, dan upload avatar.
+- **Manajemen User (Admin)**: Kontrol akses role-based untuk seluruh pengguna.
+- **Pesan & Notifikasi**: Integrasi Sonner untuk toast notification yang interaktif.
+- **Dark Mode & Themes**: Dukungan tema gelap/terang melalui `next-themes`.
+
+## 📂 Struktur direktori & Arsitektur
+
+Aplikasi ini menggunakan struktur folder yang terorganisir untuk skalabilitas:
+
+- `src/components/`: Komponen UI yang dapat digunakan kembali (Atoms, Molecules, Organisms).
+- `src/components/ui/`: Komponen dasar berbasis Radix UI (shadcn-like).
+- `src/pages/`: Halaman atau tampilan utama aplikasi.
+- `src/routing/`: Hub pusat untuk konfigurasi route, guard (Public/Protected), dan konstanta path.
+- `src/lib/`: Fungsi utilitas, konfigurasi axios, dan logika storage.
+- `src/hooks/`: Custom hooks untuk state management dan integrasi API.
+- `src/types/`: Definisi interface TypeScript untuk data model.
+- `src/assets/`: File statis seperti gambar, logo, dan icon.
+
+## 🚦 Routing & Keamanan
+
+Sistem routing menggunakan `react-router-dom` dengan pola **Guard Pattern**:
+- **ProtectedRoute**: Memastikan halaman hanya dapat diakses oleh user yang sudah login.
+- **PublicRoute**: Mencegah user yang sudah login untuk kembali ke halaman login.
+- **Constants Pattern**: Semua path didefinisikan secara terpusat di `src/routing/constants.ts` untuk menghindari hardcoding.
+
+## 📦 Build untuk Produksi
+
+Untuk melakukan build aplikasi untuk hosting:
+```bash
+npm run build
 ```
+Hasil build akan berada di dalam folder `dist/`.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 📄 Lisensi
+[MIT license](https://opensource.org/licenses/MIT).

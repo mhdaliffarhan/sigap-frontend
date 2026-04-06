@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
-import type { User, UserRole } from "@/types";
+import type { User } from "@/types";
 
 interface CreateFormData {
   name: string;
@@ -70,8 +70,14 @@ interface UserManagementDialogsProps {
 
   currentUserRole: string;
   
-  // PROP BARU: Menerima list role dari database
   availableRoles: { id: string; code: string; name: string }[];
+
+  // RESET PASSWORD PROPS
+  showResetDialog: boolean;
+  onResetDialogChange: (open: boolean) => void;
+  resetPasswordValue: string;
+  onResetPasswordChange: (value: string) => void;
+  onResetPasswordSubmit: () => void;
 }
 
 export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
@@ -87,14 +93,31 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
   onEditFormChange,
   onEditToggleRole,
   onEditSubmit,
+  editingUser,
   showDeleteDialog,
   onDeleteDialogChange,
   deletingUser,
   onDeleteSubmit,
   currentUserRole,
-  availableRoles = [], // Default empty array
+  availableRoles = [],
+  showResetDialog,
+  onResetDialogChange,
+  resetPasswordValue,
+  onResetPasswordChange,
+  onResetPasswordSubmit,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
+  const [isConfirmingReset, setIsConfirmingReset] = useState(false); // Internal state for confirmation
+
+  const handleInitialResetClick = () => {
+    if (!resetPasswordValue || resetPasswordValue.length < 8) return;
+    setIsConfirmingReset(true);
+  };
+
+  const handleFinalConfirm = () => {
+    onResetPasswordSubmit();
+    setIsConfirmingReset(false);
+  };
 
   return (
     <>
@@ -386,6 +409,83 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
               className="bg-red-600 hover:bg-red-700"
             >
               Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={showResetDialog} onOpenChange={onResetDialogChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset Password User</DialogTitle>
+            <DialogDescription>
+              Masukkan password baru untuk user "{editingUser?.name}".
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="new-password">Password Baru</Label>
+              <div className="relative">
+                <Input
+                  id="new-password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Ketik password baru..."
+                  value={resetPasswordValue}
+                  onChange={(e) => onResetPasswordChange(e.target.value)}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-gray-500" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-500" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground italic">
+                * Minimal 8 karakter, pastikan user segera mengganti password setelah login.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onResetDialogChange(false)}>
+              Batal
+            </Button>
+            <Button 
+              onClick={handleInitialResetClick}
+              disabled={!resetPasswordValue || resetPasswordValue.length < 8}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              Reset Password
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation Reset AlertDialog */}
+      <AlertDialog open={isConfirmingReset} onOpenChange={setIsConfirmingReset}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Reset Password</AlertDialogTitle>
+            <AlertDialogDescription className="text-black">
+              Apakah Anda yakin ingin mengganti password untuk user "{editingUser?.name}"? 
+              Pastikan Anda sudah mencatat password baru ini untuk diberikan kepada user.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleFinalConfirm}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              Ya, Reset Sekarang
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

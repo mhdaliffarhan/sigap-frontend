@@ -15,7 +15,8 @@ import {
   Edit, 
   Trash2, 
   Briefcase,
-  ShieldAlert // Ditambahkan untuk ikon saat disabled (akun sendiri)
+  ShieldAlert,
+  Lock // Ditambahkan untuk reset password
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import {
@@ -32,6 +33,7 @@ interface UserManagementTableProps {
   onEdit: (user: User) => void;
   onDelete: (user: User) => void;
   onToggleStatus: (userId: string) => void;
+  onResetPassword: (user: User) => void; // New prop
   getRoleBadge: (role: UserRole) => React.ReactNode;
 }
 
@@ -51,6 +53,7 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
   onEdit,
   onDelete,
   onToggleStatus,
+  onResetPassword,
   getRoleBadge,
 }) => {
   return (
@@ -200,6 +203,27 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
+
+                      {/* TOMBOL RESET PASSWORD (Hanya Super Admin) */}
+                      {currentUser.role === 'super_admin' && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-gray-500 hover:text-orange-600 hover:bg-orange-50"
+                                onClick={() => onResetPassword(user)}
+                              >
+                                <Lock className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Reset Password User</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
 
                       {/* TOMBOL DELETE */}
                       {currentUser.role === 'super_admin' && (

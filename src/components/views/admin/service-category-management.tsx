@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form'; // [NEW] Added useWatch
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -8,13 +8,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form'; // [NEW] Added FormDescription
 import { toast } from 'sonner';
-import { Settings, Pencil, Trash2, Plus, Loader2, FileText, Calendar, Wrench, Users, TrafficCone } from 'lucide-react'; // [NEW] Added Icons
+import { Settings, Trash2, Plus, Loader2, FileText, Calendar, Wrench, Users, TrafficCone } from 'lucide-react'; // [NEW] Added Icons
 import ServiceCategoryDetail from './service-category-detail';
 import { Separator } from '@/components/ui/separator'; // [NEW] Added Separator
 
 export default function ServiceCategoryManagement() {
   const [categories, setCategories] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]); // [NEW] State untuk list user (calon assignee)
+  const [users, setUsers] = useState<any[]>([]);
+  const [roles, setRoles] = useState<any[]>([]); // [NEW] List roles dinamis
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [viewState, setViewState] = useState<'list' | 'detail'>('list');
@@ -29,7 +30,8 @@ export default function ServiceCategoryManagement() {
       is_active: true,
       form_schema: [],
       // === [NEW] Default Values Traffic Control ===
-      target_role: 'admin_layanan', // Default role
+      target_role: '', // Legacy
+      handling_role_id: '', // New Dynamic Role
       assignment_type: 'auto',      // Default Auto (Algoritma)
       default_assignee_id: ''       // Optional
     }
@@ -44,18 +46,22 @@ export default function ServiceCategoryManagement() {
     setLoading(true);
     try {
       // 1. Load Categories
-      const resCat = await api.get('/service-categories');
+      const resCat: any = await api.get('/service-categories');
       let dataToSet = [];
       if (Array.isArray(resCat)) dataToSet = resCat;
       else if (resCat?.data && Array.isArray(resCat.data)) dataToSet = resCat.data;
       else if (resCat?.data?.data && Array.isArray(resCat.data.data)) dataToSet = resCat.data.data;
       setCategories(dataToSet);
 
-      // 2. [NEW] Load Users (untuk dropdown Direct Assignment)
-      // Idealnya endpoint ini memfilter user aktif saja
-      const resUsers = await api.get('/users'); 
+      // 2. Load Users
+      const resUsers: any = await api.get('/users'); 
       const usersList = Array.isArray(resUsers.data) ? resUsers.data : (resUsers.data?.data || []);
       setUsers(usersList);
+
+      // 3. Load Roles
+      const resRoles: any = await api.get('/roles');
+      const rolesList = Array.isArray(resRoles.data) ? resRoles.data : (resRoles.data?.data || []);
+      setRoles(rolesList);
 
     } catch (e) {
       toast.error("Gagal memuat data");
@@ -148,8 +154,8 @@ export default function ServiceCategoryManagement() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-10 lg:p-8 pb-20">
+      <div className="flex justify-between items-center bg-white/40 backdrop-blur-md p-6 rounded-[2rem] border border-white/40 shadow-sm">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-gray-900">Katalog Layanan</h2>
           <p className="text-muted-foreground mt-1">Kelola jenis layanan, formulir input, dan alur penugasan (Traffic Control).</p>
@@ -159,9 +165,9 @@ export default function ServiceCategoryManagement() {
         </Button>
       </div>
 
-      <div className="bg-white rounded-md border shadow-sm overflow-hidden">
+      <div className="glass-card rounded-[2rem] border-none shadow-xl overflow-hidden">
         <Table className="min-w-[800px]">
-          <TableHeader className="bg-gray-100/80">
+          <TableHeader className="bg-blue-600/5 backdrop-blur-md">
             <TableRow>
               <TableHead className="w-[300px] border-r border-b font-semibold text-gray-900 pl-4">Nama Layanan</TableHead>
               <TableHead className="w-[150px] border-r border-b font-semibold text-gray-900">Tipe</TableHead>
@@ -194,11 +200,11 @@ export default function ServiceCategoryManagement() {
                   <TableCell className="border-r border-b">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-1 text-xs font-medium text-gray-700">
-                        <Users className="h-3 w-3 text-gray-400" />
-                        <span className="capitalize">{cat.target_role || 'Admin Layanan'}</span>
+                        <Users className="h-3 w-3 text-indigo-400" />
+                        <span className="capitalize">{cat.handling_role?.name || cat.target_role || 'Belum diatur'}</span>
                       </div>
                       <div className="flex items-center gap-1 text-xs text-gray-500">
-                        <TrafficCone className="h-3 w-3 text-gray-400" />
+                        <TrafficCone className="h-3 w-3 text-orange-400" />
                         <span className="capitalize">
                           {cat.assignment_type === 'auto' ? 'Otomatis' : 
                            cat.assignment_type === 'direct' ? 'Langsung' : 'Manual (Pool)'}
@@ -271,18 +277,16 @@ export default function ServiceCategoryManagement() {
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
-                  {/* PILIH ROLE */}
-                  <FormField control={form.control} name="target_role" render={({ field }) => (
+                  {/* PILIH ROLE (DINAMIS) */}
+                  <FormField control={form.control} name="handling_role_id" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Role Penanggung Jawab</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Pilih Role" /></SelectTrigger></FormControl>
                         <SelectContent>
-                          <SelectItem value="admin_layanan">Admin Layanan (Default)</SelectItem>
-                          <SelectItem value="admin_penyedia">Admin Penyedia/Gudang</SelectItem>
-                          <SelectItem value="teknisi">Teknisi IT / Umum</SelectItem>
-                          <SelectItem value="staff_ga">Staff Umum (GA)</SelectItem>
-                          <SelectItem value="kepala_bagian">Kepala Bagian</SelectItem>
+                          {roles.map((r: any) => (
+                            <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormDescription className="text-[10px]">

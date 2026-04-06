@@ -21,6 +21,10 @@ export const ROUTES = {
   
   // Work Order views
   WORK_ORDERS: '/:role/work-orders',
+  BMN_ASSETS: '/admin/bmn-assets',
+  SERVICE_MANAGEMENT: '/admin/services',
+  ROLE_MANAGEMENT: '/admin/roles',
+  USER_MANAGEMENT: '/admin/users',
   
   // Admin views
   USERS: '/:role/users',

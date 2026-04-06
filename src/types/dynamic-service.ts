@@ -1,14 +1,21 @@
 // src/types/dynamic-service.ts
 
-export type ServiceType = 'booking' | 'service' | 'request';
+export type ServiceType = 'booking' | 'service' | 'request' | 'repair';
 
 export interface FormFieldSchema {
   name: string;
   label: string;
-  type: 'text' | 'number' | 'boolean' | 'date' | 'textarea';
+  type: 'text' | 'number' | 'boolean' | 'date' | 'textarea' | 'select';
   required: boolean;
   placeholder?: string;
   options?: string[]; // Jika nanti ada dropdown
+}
+
+export interface Role {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
 }
 
 export interface ServiceCategory {
@@ -16,10 +23,17 @@ export interface ServiceCategory {
   name: string;
   slug: string;
   type: ServiceType;
+  handling_role_id?: string;
+  handling_role?: Role;
   icon?: string;
   description?: string;
-  form_schema: FormFieldSchema[]; // Ini JSON schema dari DB
+  form_schema: FormFieldSchema[];
+  action_schema?: FormFieldSchema[];
   is_active: boolean;
+  is_resource_based: boolean;
+  target_role?: string; // Legacy support
+  assignment_type: 'auto' | 'manual' | 'direct';
+  default_assignee_id?: string;
 }
 
 export interface Resource {

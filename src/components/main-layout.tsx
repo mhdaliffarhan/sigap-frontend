@@ -16,6 +16,8 @@ import { ZoomBooking, ZoomManagementView } from "@/components/views/zoom";
 import { UserManagement, ReportsView } from "@/components/views/admin";
 import RoleManagement from "@/components/views/admin/role-management";
 import ServiceCategoryManagement from "@/components/views/admin/service-category-management";
+import ServiceCatalog from "@/components/views/services/service-catalog";
+import CreateServiceTicket from "@/components/views/services/create-service-ticket";
 import { CreateTicketWrapper } from "@/components/views/tickets/create-ticket-wrapper";
 import { ProfileSettings } from "@/components/views/shared";
 import {
@@ -53,7 +55,9 @@ export type ViewType =
   | "work-orders"
   | "reports"
   | "profile"
-  | "settings";
+  | "settings"
+  | "services"
+  | "service-detail";
 
 /**
  * Menentukan default view berdasarkan role pengguna
@@ -123,6 +127,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     if (pathParts.length >= 2) {
       const menu = pathParts[1];
       if (menu.startsWith("ticket-detail")) return "ticket-detail";
+      if (menu === "services" && pathParts.length > 2) return "service-detail";
       return menu as ViewType;
     }
     return "dashboard" as ViewType;
@@ -181,6 +186,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         reports: "/:role/reports",
         profile: "/:role/profile",
         settings: "/:role/settings",
+        services: "/:role/services",
+        "service-detail": "/:role/services",
       };
       
       const pattern = routeMap[view];
@@ -383,6 +390,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             onNavigate={handleNavigate}
           />
         );
+      
+      case "services":
+        return <ServiceCatalog onNavigate={handleNavigate} />;
+      
+      case "service-detail":
+        const slug = location.pathname.split("/").filter(Boolean)[2];
+        return <CreateServiceTicket slug={slug} onNavigate={handleNavigate} />;
 
       default:
         return (
@@ -409,7 +423,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         />
       </div>
 
-      <div className="flex flex-1 overflow-hidden max-md:overflow-visible relative bg-blue">
+      <div className="flex flex-1 overflow-hidden max-md:overflow-visible relative premium-gradient">
         <Sidebar
           currentUser={currentUser}
           onNavigate={handleNavigate}
@@ -419,8 +433,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
         {sidebarCollapsed && <div className="w-[72px] flex-shrink-0 max-md:hidden" />}
 
-        <main className="flex-1 overflow-y-scroll [scrollbar-gutter:stable] bg-[#f1f3f4] rounded-tl-3xl max-md:rounded-tr-3xl max-md:shadow-[0_-8px_30px_rgba(0,0,0,0.12)]">
-          <div className="p-6">{renderContent()}</div>
+        <main className="flex-1 overflow-y-scroll [scrollbar-gutter:stable] bg-white/40 backdrop-blur-md rounded-tl-[2.5rem] max-md:rounded-tr-[2.5rem] max-md:shadow-[0_-8px_30px_rgba(0,0,0,0.12)] border-t border-l border-white/40 shadow-inner">
+          <div className="p-8">{renderContent()}</div>
         </main>
       </div>
     </div>

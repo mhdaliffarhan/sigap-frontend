@@ -58,6 +58,8 @@ export interface User {
   failedLoginAttempts: number;
   lockedUntil?: string;
   isOnLeave?: boolean;
+  is_on_leave?: boolean;
+  role_id?: string;
 }
 
 export interface Attachment {

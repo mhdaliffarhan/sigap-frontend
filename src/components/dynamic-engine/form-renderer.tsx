@@ -63,19 +63,21 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({ schema
                     case 'textarea':
                       return (
                         <Textarea 
+                          {...formField} 
+                          value={formField.value || ''}
                           placeholder={field.placeholder || "Isi detail..."} 
                           className="bg-white min-h-[100px]" 
-                          {...formField} 
                         />
                       );
                     
                     case 'number':
                       return (
                         <Input 
+                          {...formField} 
+                          value={formField.value || ''}
                           type="number" 
                           placeholder="0" 
                           className="bg-white" 
-                          {...formField} 
                           // Konversi string ke number saat input berubah
                           onChange={e => formField.onChange(e.target.valueAsNumber)} 
                         />
@@ -140,9 +142,10 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({ schema
                     default:
                       return (
                         <Input 
+                          {...formField} 
+                          value={formField.value || ''}
                           placeholder={field.placeholder || field.label} 
                           className="bg-white" 
-                          {...formField} 
                         />
                       );
                   }

@@ -5252,4 +5252,29 @@ html {
   input[type="password"]::after {
     display: none !important;
   }
+
+  /* Glassmorphism Utilities */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07) !important;
+  }
+
+  .glass-sidebar {
+    background: rgba(255, 255, 255, 0.4) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.2) !important;
+  }
+
+  .premium-gradient {
+    background: linear-gradient(135deg, #f8faff 0%, #eef2ff 100%) !important;
+  }
+
+  .premium-sidebar-item-active {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0) 100%) !important;
+    border-left: 3px solid #3b82f6 !important;
+  }
 }

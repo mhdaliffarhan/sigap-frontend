@@ -12,6 +12,8 @@ export interface DashboardStats {
   ticketsLast7Days: number;
   ticketsLast30Days: number;
   avgResolutionTime: number;
+  totalServiceCategories: number;
+  totalRoles: number;
 }
 
 export interface TicketsByType {
@@ -44,6 +46,8 @@ const defaultStats: DashboardStats = {
   ticketsLast7Days: 0,
   ticketsLast30Days: 0,
   avgResolutionTime: 0,
+  totalServiceCategories: 0,
+  totalRoles: 0,
 };
 
 export function useSuperAdminDashboard(): UseSuperAdminDashboardReturn {

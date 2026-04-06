@@ -165,12 +165,11 @@ export const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, onNavigat
     <>
       <header
         className="
-          bg-white h-[72px]
+          h-[72px] glass-card shadow-none border-0 border-b border-white/20
           max-md:bg-gradient-to-br
           max-md:from-white/40
           max-md:to-white/10
           max-md:backdrop-blur-xl
-          max-md:border-b max-md:border-white/20
         "
       >
         <div className="flex items-center justify-between h-full px-4 sm:px-6">
