@@ -137,12 +137,12 @@ export function SchemaBuilder({ value = [], onChange }: SchemaBuilderProps) {
                 {field.type === 'select' && (
                   <div>
                      <Label className="text-xs text-muted-foreground">Opsi Pilihan (Pisahkan koma)</Label>
-                     <Input 
+                      <Input 
                         placeholder="Merah, Kuning, Hijau"
-                        // Join array back to string for editing
-                        defaultValue={Array.isArray(field.options) ? field.options.join(', ') : ''}
+                        // Join array back to string for editing, support objects
+                        defaultValue={Array.isArray(field.options) ? field.options.map(o => typeof o === 'object' ? o.label : o).join(', ') : ''}
                         onBlur={(e) => updateField(index, 'options', e.target.value)}
-                     />
+                      />
                   </div>
                 )}
                 {field.type !== 'select' && (

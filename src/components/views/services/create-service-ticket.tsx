@@ -14,12 +14,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { 
-  ArrowLeft, Calendar, Clock, 
-  Info, Send, Sparkles,
-  LayoutGrid, BookText
+  ArrowLeft, Calendar, 
+  Send, Sparkles,
+  BookText, Loader2, Wrench
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 
 export default function CreateServiceTicket() {
   const { slug } = useParams<{ slug: string }>();
@@ -28,7 +27,6 @@ export default function CreateServiceTicket() {
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Inisialisasi Form
   const form = useForm({
     defaultValues: {
       title: '',
@@ -36,15 +34,13 @@ export default function CreateServiceTicket() {
       start_date: '',
       end_date: '',
       resource_id: '',
-      dynamic_form_data: {} // Tempat jawaban form dinamis
+      dynamic_form_data: {} 
     }
   });
 
-  // Watch tanggal untuk cek ketersediaan resource
   const startDate = form.watch('start_date');
   const endDate = form.watch('end_date');
 
-  // 1. Load Data Layanan
   useEffect(() => {
     if (slug) {
       dynamicServiceApi.getServiceBySlug(slug)
@@ -54,30 +50,24 @@ export default function CreateServiceTicket() {
     }
   }, [slug]);
 
-  // 2. Cek Ketersediaan Resource (Kalau tipe booking)
   useEffect(() => {
     if (service?.type === 'booking' && startDate && endDate) {
-      // Fetch resource yang tersedia di tanggal tersebut
       dynamicServiceApi.getResources(service.slug, startDate, endDate)
         .then(setResources)
         .catch(console.error);
     }
   }, [service, startDate, endDate]);
 
-  // 3. Submit Handler
   const onSubmit = async (data: any) => {
     if (!service) return;
-
     try {
       await dynamicServiceApi.createTicket({
         service_category_id: service.id,
         ...data,
-        // Pastikan format dynamic_form_data sesuai
         dynamic_form_data: data.dynamic_form_data 
       });
-      
       toast.success("Tiket berhasil dibuat!");
-      navigate('/dashboard'); // Atau ke halaman list tiket
+      navigate('/dashboard'); 
     } catch (error) {
       toast.error("Gagal membuat tiket");
       console.error(error);
@@ -92,75 +82,81 @@ export default function CreateServiceTicket() {
   );
 
   return (
-    <div className="flex flex-col gap-6 lg:p-8 pb-20 animate-in fade-in duration-500">
-      {/* HEADER SECTION */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => navigate(-1)}
-            className="h-10 w-10 rounded-full border border-slate-200 bg-white hover:bg-slate-50 transition-all"
-          >
-            <ArrowLeft className="h-5 w-5 text-slate-600" />
-          </Button>
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-               <Badge variant="secondary" className="bg-blue-50 text-blue-600 border-none px-2 py-0.5 text-[10px] font-bold uppercase transition-all">
-                 <Sparkles className="h-3 w-3 mr-1" /> Layanan SIGAP
-               </Badge>
-               <span className="text-slate-300">•</span>
-               <span className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">Baru</span>
+    <div className="flex flex-col gap-8 lg:p-0 pb-20 animate-in fade-in slide-in-from-top-4 duration-700 w-full">
+      {/* HEADER SECTION - MODERN & PREMIUM */}
+      <div className="relative overflow-hidden rounded-[2rem] bg-slate-900 p-8 lg:p-10 text-white shadow-2xl">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-5">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => navigate(-1)}
+              className="h-12 w-12 rounded-2xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 transition-all text-white"
+            >
+              <ArrowLeft className="h-6 w-6" />
+            </Button>
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                 <Badge className="bg-blue-600 text-white border-none px-3 py-1 text-[10px] font-bold uppercase tracking-widest">
+                   <Sparkles className="h-3 w-3 mr-1.5" /> Formulir SIGAP
+                 </Badge>
+                 <div className="h-1 w-1 rounded-full bg-slate-700" />
+                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">SISTEM TERPADU</span>
+              </div>
+              <h1 className="text-3xl lg:text-4xl font-black text-white tracking-tight leading-none">
+                Pengajuan {service.name}
+              </h1>
             </div>
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-              Pengajuan {service.name}
-            </h1>
+          </div>
+  
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" onClick={() => navigate(-1)} className="rounded-2xl px-6 text-slate-300 hover:text-white hover:bg-slate-800 font-bold">
+              Batal
+            </Button>
+            <div className={`px-4 py-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm flex items-center gap-2`}>
+                <div className={`h-2 w-2 rounded-full animate-pulse ${
+                    service.type === 'booking' ? 'bg-indigo-400' : 
+                    service.type === 'repair' ? 'bg-orange-400' : 'bg-emerald-400'
+                }`} />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">
+                    Mode {service.type}
+                </span>
+            </div>
           </div>
         </div>
-
-        <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={() => navigate(-1)} className="rounded-xl px-6 border-slate-200">
-            Batal
-          </Button>
-          <Button 
-            onClick={form.handleSubmit(onSubmit)} 
-            className="rounded-xl px-8 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95"
-            disabled={form.formState.isSubmitting}
-          >
-            {form.formState.isSubmitting ? "Mengirim..." : "Kirim Pengajuan Sekarang"}
-            <Send className="h-4 w-4 ml-2" />
-          </Button>
-        </div>
+        
+        {/* Decorative Elements */}
+        {service.type === 'repair' ? <Wrench className="absolute -right-8 -bottom-8 h-40 w-40 text-white opacity-5 rotate-12" /> : 
+         service.type === 'booking' ? <Calendar className="absolute -right-8 -bottom-8 h-40 w-40 text-white opacity-5 rotate-12" /> :
+         <BookText className="absolute -right-8 -bottom-8 h-40 w-40 text-white opacity-5 rotate-12" />}
       </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* LEFT COLUMN: MAIN FORMS */}
-            <div className="lg:col-span-2 space-y-8">
+          <div className="max-w-4xl mx-auto space-y-8">
+            {/* CONTAINER AREA */}
+            <div className="space-y-8">
               
-              {/* SECTION 1: IDENTITAS PENGUJUAN */}
-              <Card className="border-none shadow-sm overflow-hidden">
-                <CardHeader className="bg-slate-50/50 border-b border-slate-100 px-8 py-6">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-100">
-                      <BookText className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg font-bold text-slate-800">Detail Pengajuan</CardTitle>
-                      <p className="text-xs text-slate-400">Informasi dasar mengenai kebutuhan Anda</p>
-                    </div>
+               {/* SECTION 1: DETAIL PENGUJUAN */}
+               <Card className="border-none shadow-sm overflow-hidden bg-white">
+                <CardHeader className="border-b border-slate-50 bg-slate-50/30 pb-6 pt-6 flex flex-row items-center gap-4">
+                  <div className="p-2 bg-blue-600 rounded-lg text-white">
+                    <BookText className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-bold text-slate-900">Detail Pengajuan</CardTitle>
+                    <p className="text-slate-500 text-sm italic">Berikan informasi lengkap mengenai kebutuhan Anda.</p>
                   </div>
                 </CardHeader>
                 <CardContent className="p-8 space-y-6">
                   <FormField control={form.control} name="title" rules={{ required: "Judul wajib diisi" }}
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-700 font-bold">Judul / Keperluan</FormLabel>
+                      <FormItem className="space-y-2">
+                        <FormLabel className="text-sm font-bold text-slate-700 ml-1">Subjek Pengajuan</FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="Contoh: Peminjaman Kendaraan Operasional ke Lokasi X" 
-                            className="h-12 bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl"
+                            placeholder="Contoh: Peminjaman Kendaraan Operasional untuk Dinas" 
+                            className="h-12 bg-white border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-slate-900 font-medium placeholder:text-slate-400"
                             {...field} 
                           />
                         </FormControl>
@@ -170,12 +166,12 @@ export default function CreateServiceTicket() {
                   />
                   <FormField control={form.control} name="description"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-700 font-bold">Deskripsi Tambahan</FormLabel>
+                      <FormItem className="space-y-2">
+                        <FormLabel className="text-sm font-bold text-slate-700 ml-1">Deskripsi Tambahan</FormLabel>
                         <FormControl>
                           <Textarea 
-                            placeholder="Berikan informasi tambahan jika diperlukan agar kami dapat melayani Anda lebih baik..." 
-                            className="min-h-[120px] bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl resize-none"
+                            placeholder="Berikan informasi tambahan jika diperlukan..." 
+                            className="min-h-[120px] bg-white border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-slate-900 leading-relaxed font-medium"
                             {...field} 
                           />
                         </FormControl>
@@ -191,127 +187,84 @@ export default function CreateServiceTicket() {
                 form={form} 
                 schema={service.form_schema} 
               />
+
+              {/* SECTION 3: BOOKING (Conditional) */}
+              {service.type === 'booking' && (
+                <Card className="border-none shadow-sm overflow-hidden bg-white">
+                  <CardHeader className="border-b border-slate-50 bg-slate-50/30 pb-6 pt-6 flex flex-row items-center gap-4">
+                    <div className="p-2 bg-indigo-600 rounded-lg text-white">
+                       <Calendar className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-bold text-slate-900">Jadwal & Reservasi</CardTitle>
+                      <p className="text-slate-500 text-sm italic">Tentukan waktu dan pilih unit yang tersedia.</p>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-8 space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField control={form.control} name="start_date" rules={{ required: true }}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Waktu Mulai</FormLabel>
+                            <FormControl><Input type="datetime-local" className="h-12 rounded-xl" {...field} /></FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField control={form.control} name="end_date" rules={{ required: true }}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Waktu Selesai</FormLabel>
+                            <FormControl><Input type="datetime-local" className="h-12 rounded-xl" {...field} /></FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    {startDate && endDate && (
+                      <FormField control={form.control} name="resource_id" rules={{ required: "Pilih unit" }}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Pilih Unit / Ruangan</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="rounded-xl h-12">
+                                  <SelectValue placeholder="-- Pilih Unit Tersedia --" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="rounded-xl">
+                                {resources.map(res => (
+                                  <SelectItem key={res.id} value={res.id}>{res.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
-        {/* RIGHT COLUMN: BOOKING & SIDEBAR */}
-        <div className="space-y-8">
-          {/* BOOKING SECTION (Conditional) */}
-          {service.type === 'booking' && (
-            <Card className="border-none shadow-sm overflow-hidden bg-indigo-600 text-white relative">
-              <CardHeader className="px-8 pt-8 pb-4 relative z-10">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
-                    <Calendar className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg font-bold">Jadwal & Unit</CardTitle>
-                    <p className="text-xs text-indigo-100">Khusus layanan reservasi</p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="px-8 pb-8 pt-2 space-y-6 relative z-10">
-                <div className="grid gap-4">
-                  <FormField control={form.control} name="start_date" rules={{ required: true }}
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs font-bold text-indigo-100 uppercase tracking-widest">Waktu Mulai</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="datetime-local" 
-                            className="bg-white/10 border-white/20 text-white h-11 rounded-lg focus:ring-white/30"
-                            {...field} 
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField control={form.control} name="end_date" rules={{ required: true }}
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs font-bold text-indigo-100 uppercase tracking-widest">Waktu Selesai</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="datetime-local" 
-                            className="bg-white/10 border-white/20 text-white h-11 rounded-lg focus:ring-white/30"
-                            {...field} 
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {startDate && endDate && (
-                  <div className="pt-4 border-t border-white/10">
-                    <FormField control={form.control} name="resource_id" rules={{ required: "Pilih unit" }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs font-bold text-indigo-100 uppercase tracking-widest mb-2 block">Pilih Unit Tersedia</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger className="bg-white text-indigo-900 border-none rounded-xl h-12 shadow-inner">
-                                <SelectValue placeholder="-- Pilih Unit --" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="rounded-xl overflow-hidden shadow-xl border-none">
-                              {resources.length > 0 ? resources.map(res => (
-                                <SelectItem key={res.id} value={res.id} className="cursor-pointer">
-                                  <div className="flex flex-col">
-                                    <span className="font-bold">{res.name}</span>
-                                    {res.capacity && <span className="text-[10px] opacity-70">Kap: {res.capacity} orang</span>}
-                                  </div>
-                                </SelectItem>
-                              )) : (
-                                <div className="p-3 text-center">
-                                  <Info className="h-8 w-8 text-slate-300 mx-auto mb-2" />
-                                  <p className="text-sm text-slate-500">Tidak ada unit tersedia</p>
-                                </div>
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage className="text-red-200" />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
-                
-                {!startDate && (
-                  <div className="p-4 bg-white/5 rounded-xl border border-white/10 text-center text-xs text-indigo-100 italic">
-                    Tentukan waktu mulai & selesai untuk melihat ketersediaan unit.
-                  </div>
-                )}
-              </CardContent>
-              {/* Decoration */}
-              <Calendar className="absolute -right-6 -bottom-6 h-32 w-32 text-white/10 -rotate-12" />
-            </Card>
-          )}
-
-          {/* HELP CARD */}
-          <Card className="border-none shadow-sm bg-slate-50">
-            <CardContent className="p-8">
-              <div className="h-12 w-12 rounded-full bg-white flex items-center justify-center mb-6 shadow-sm border border-slate-100">
-                <Info className="h-6 w-6 text-blue-600" />
-              </div>
-              <h4 className="font-bold text-slate-900 mb-2 leading-tight">Panduan Layanan</h4>
-              <p className="text-xs text-slate-500 leading-relaxed italic mb-4">
-                "Pastikan data yang Anda masukkan sudah benar. Anda dapat memantau progress pengajuan melalui dashboard setelah tiket terkirim."
-              </p>
-              <Separator className="my-4 bg-slate-200" />
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  <LayoutGrid className="h-3 w-3" /> Area Layanan: {service.type}
-                </div>
-                <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  <Clock className="h-3 w-3" /> Respon: &lt; 24 Jam
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            {/* ACTION FOOTER */}
+            <div className="flex flex-col sm:flex-row justify-between items-center bg-slate-900 p-8 rounded-[2rem] shadow-xl text-white gap-6 animate-in slide-in-from-bottom-4 duration-500">
+               <div className="space-y-1">
+                 <p className="text-blue-400 font-bold uppercase tracking-widest text-[10px]">Konfirmasi Pengajuan</p>
+                 <h3 className="text-xl font-bold">Kirim pengajuan sekarang?</h3>
+                 <p className="text-slate-400 text-sm italic">Pastikan data yang Anda masukkan sudah akurat.</p>
+               </div>
+               <div className="flex items-center gap-3 w-full sm:w-auto">
+                 <Button type="button" variant="ghost" className="flex-1 sm:flex-none h-14 px-8 rounded-2xl hover:bg-white/10 text-slate-300" onClick={() => navigate(-1)}>Batal</Button>
+                 <Button type="submit" disabled={form.formState.isSubmitting} className="flex-1 sm:flex-none h-14 px-10 rounded-2xl bg-blue-600 hover:bg-blue-700 font-bold shadow-lg shadow-blue-900/20">
+                   {form.formState.isSubmitting ? <Loader2 className="animate-spin mr-2" /> : <Send className="mr-2" />}
+                   Kirim Pengajuan
+                 </Button>
+               </div>
             </div>
           </div>
         </form>
       </Form>
     </div>
   );
-}
+}

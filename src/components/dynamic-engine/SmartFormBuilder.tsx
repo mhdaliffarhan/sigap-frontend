@@ -155,11 +155,15 @@ export const SmartFormBuilder: React.FC<SmartFormBuilderProps> = ({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {options.map((opt, i) => (
-                            <SelectItem key={i} value={opt}>
-                              {opt}
-                            </SelectItem>
-                          ))}
+                          {options.map((opt: any, i) => {
+                            const val = typeof opt === 'object' ? opt.value : opt;
+                            const label = typeof opt === 'object' ? opt.label : opt;
+                            return (
+                              <SelectItem key={i} value={val}>
+                                {label}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                       <FormMessage />

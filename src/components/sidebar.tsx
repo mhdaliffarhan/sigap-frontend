@@ -303,14 +303,14 @@ const getMenuItemsForRole = (role: UserRole): MenuItem[] => {
     },
     {
       id: "create-ticket" as ViewType,
-      label: "Buat Tiket Baru",
+      label: "Pengajuan Baru",
       icon: PlusCircle,
       roles: ["pegawai"],
     },
     
     {
       id: "services" as ViewType,
-      label: "Katalog Layanan",
+      label: "Daftar Layanan",
       icon: Layers,
       roles: ["pegawai"],
     },

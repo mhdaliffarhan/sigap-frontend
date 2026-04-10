@@ -7,16 +7,48 @@ import type { ServiceCategory } from '@/types/dynamic-service';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
-  Car, Building, Wrench, FileText, ArrowRight, 
-  Video, Boxes, ShieldCheck,
-  ChevronRight, Sparkles
+  Car, Building, Wrench, FileText,
+  Video, Boxes, Search, Package,
+  ChevronRight, LayoutGrid, List,
+  Filter
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
 
 export default function ServiceCatalog() {
   const [services, setServices] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filterType, setFilterType] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Auto switch view based on screen
+    const handleResize = () => {
+      if (window.innerWidth < 1024) setViewMode('card');
+    };
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     loadServices();
@@ -24,8 +56,9 @@ export default function ServiceCatalog() {
 
   const loadServices = async () => {
     try {
+      setLoading(true);
       const data = await dynamicServiceApi.getServices();
-      setServices(data);
+      setServices(data || []);
     } catch (error) {
       console.error("Gagal memuat layanan", error);
     } finally {
@@ -33,17 +66,61 @@ export default function ServiceCatalog() {
     }
   };
 
-  // Helper untuk memilih icon secara dinamis dengan warna premium
-  const getIcon = (iconName?: string, type?: string) => {
-    const size = "h-7 w-7";
-    if (type === 'booking') {
-      if (iconName === 'car') return <div className="p-3 bg-blue-500/10 rounded-xl"><Car className={`${size} text-blue-600`} /></div>;
-      return <div className="p-3 bg-indigo-500/10 rounded-xl"><Building className={`${size} text-indigo-600`} /></div>;
+  // Helper untuk skema warna kategori
+  const getCategoryTheme = (type?: string) => {
+    switch (type) {
+      case 'booking':
+        return {
+          bg: 'bg-indigo-500/10',
+          text: 'text-indigo-600',
+          border: 'border-indigo-100',
+          badge: 'bg-indigo-50 text-indigo-600',
+          accent: 'bg-indigo-500'
+        };
+      case 'repair':
+        return {
+          bg: 'bg-orange-500/10',
+          text: 'text-orange-600',
+          border: 'border-orange-100',
+          badge: 'bg-orange-50 text-orange-600',
+          accent: 'bg-orange-500'
+        };
+      default: // service
+        return {
+          bg: 'bg-emerald-500/10',
+          text: 'text-emerald-600',
+          border: 'border-emerald-100',
+          badge: 'bg-emerald-50 text-emerald-600',
+          accent: 'bg-emerald-500'
+        };
     }
-    if (type === 'repair') return <div className="p-3 bg-orange-500/10 rounded-xl"><Wrench className={`${size} text-orange-600`} /></div>;
-    if (iconName === 'zoom') return <div className="p-3 bg-cyan-500/10 rounded-xl"><Video className={`${size} text-cyan-600`} /></div>;
-    return <div className="p-3 bg-slate-500/10 rounded-xl"><FileText className={`${size} text-slate-600`} /></div>;
   };
+
+  const getIcon = (iconName?: string, type?: string) => {
+    const size = "h-5 w-5";
+    
+    if (type === 'booking') {
+      if (iconName === 'car') return <Car className={`${size}`} />;
+      return <Building className={`${size}`} />;
+    }
+    if (type === 'repair') return <Wrench className={`${size}`} />;
+    if (iconName === 'zoom') return <Video className={`${size}`} />;
+    return <FileText className={`${size}`} />;
+  };
+
+  const filteredServices = services.filter(s => {
+    const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase()) || 
+                         (s.description || '').toLowerCase().includes(search.toLowerCase());
+    const matchesFilter = filterType === 'all' || s.type === filterType;
+    return matchesSearch && matchesFilter;
+  });
+
+  // Client-side pagination
+  const totalPages = Math.ceil(filteredServices.length / itemsPerPage);
+  const paginatedServices = filteredServices.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
@@ -53,97 +130,213 @@ export default function ServiceCatalog() {
   );
 
   return (
-    <div className="flex flex-col gap-8 lg:p-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* HEADER SECTION */}
-      <div className="relative overflow-hidden rounded-3xl bg-blue-600 p-8 lg:p-12 text-white shadow-2xl shadow-blue-200">
-        <div className="relative z-10 max-w-2xl">
-          <Badge className="mb-4 bg-blue-500/30 text-white border-none backdrop-blur-md px-3 py-1">
-            <Sparkles className="h-3 w-3 mr-2 inline" /> Sistem Layanan Terpadu
-          </Badge>
-          <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">
-            Apa yang bisa kami bantu hari ini?
-          </h1>
-          <p className="text-blue-100 text-lg lg:text-xl leading-relaxed opacity-90">
-            Pilih katalog layanan di bawah ini untuk memulai pengajuan. Kami siap melayani kebutuhan operasional Anda dengan cepat dan transparan.
-          </p>
+    <div className="flex flex-col gap-6 lg:p-0 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700 w-full">
+      {/* HEADER SECTION - COMPACT */}
+      <div className="relative overflow-hidden rounded-[2rem] bg-slate-900 p-8 lg:p-10 text-white shadow-xl">
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="space-y-2">
+            <h2 className="text-3xl lg:text-4xl font-black tracking-tight leading-none">
+              Daftar Layanan
+            </h2>
+            <p className="text-slate-400 text-sm lg:text-base font-medium max-w-xl opacity-80">
+              Pilih kategori layanan di bawah untuk mulai membuat pengajuan baru.
+            </p>
+          </div>
         </div>
-        <Boxes className="absolute -right-10 -bottom-10 h-64 w-64 text-blue-500 opacity-20 rotate-12" />
+        <Boxes className="absolute -right-10 -bottom-10 h-64 w-64 text-white opacity-5 rotate-12" />
       </div>
 
-      {/* CATEGORY TABS / FILTERS (Optional for future) */}
-      <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
-        <Button variant="secondary" className="rounded-full px-6 bg-blue-600 text-white hover:bg-blue-700">Semua Layanan</Button>
-        <Button variant="outline" className="rounded-full px-6 border-slate-200 text-slate-600 hover:bg-slate-50">Booking & Reservasi</Button>
-        <Button variant="outline" className="rounded-full px-6 border-slate-200 text-slate-600 hover:bg-slate-50">Perawatan Asset</Button>
-        <Button variant="outline" className="rounded-full px-6 border-slate-200 text-slate-600 hover:bg-slate-50">Administrasi Umum</Button>
-      </div>
-
-      {/* GRID SECTION */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {services.map((service) => (
-          <Card 
-            key={service.id} 
-            className="group relative overflow-hidden border-none shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer bg-white/70 backdrop-blur-sm"
-            onClick={() => navigate(`/services/${service.slug}`)}
-          >
-            <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-                <ChevronRight className="h-5 w-5" />
-              </div>
+      {/* ACTION CARD */}
+      <Card className="border-none shadow-sm overflow-hidden bg-white">
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col lg:flex-row items-center gap-4">
+            {/* Search */}
+            <div className="relative flex-[2] w-full group">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-300 h-4 w-4 group-focus-within:text-blue-600 transition-all z-10" />
+              <Input
+                placeholder="Cari layanan (misal: Aula, Laptop)..."
+                value={search}
+                onChange={(e) => {
+                    setSearch(e.target.value);
+                    setCurrentPage(1);
+                }}
+                className="pl-12 h-11 text-sm w-full bg-slate-50/50 border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 rounded-xl transition-all font-medium"
+                style={{ paddingLeft: '3rem' }}
+              />
             </div>
 
-            <CardHeader className="pt-8 px-8">
-              <div className="mb-6 w-fit transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3">
-                {getIcon(service.icon, service.type)}
-              </div>
-              <div className="space-y-1">
-                <CardTitle className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
-                  {service.name}
-                </CardTitle>
-                <div className="flex items-center gap-2 pt-1">
-                   <Badge variant="outline" className={`text-[10px] uppercase font-bold border-none px-0 ${
-                     service.type === 'booking' ? 'text-indigo-500' : 
-                     service.type === 'repair' ? 'text-orange-500' : 'text-slate-400'
-                   }`}>
-                     {service.type === 'booking' ? 'Reservasi' : 
-                      service.type === 'repair' ? 'Perbaikan' : 'Umum'}
-                   </Badge>
-                   <span className="text-slate-300">•</span>
-                   <span className="text-[10px] text-slate-400 font-medium">SIGAP Engine</span>
+            {/* Filter & Mode Switcher */}
+            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                <div className="flex-1 min-w-[140px]">
+                    <Select value={filterType} onValueChange={(val) => {
+                        setFilterType(val);
+                        setCurrentPage(1);
+                    }}>
+                        <SelectTrigger className="h-11 pl-4 text-sm border-slate-200 rounded-xl bg-slate-50/50 hover:bg-white transition-all font-bold text-slate-700">
+                            <div className="flex items-center gap-2">
+                                <Filter className="h-4 w-4 text-slate-400" />
+                                <SelectValue placeholder="Semua Kategori" />
+                            </div>
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-none shadow-2xl">
+                            <SelectItem value="all">Semua Kategori</SelectItem>
+                            <SelectItem value="booking">Reservasi (Booking)</SelectItem>
+                            <SelectItem value="repair">Perbaikan (Repair)</SelectItem>
+                            <SelectItem value="service">Layanan Umum</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
-              </div>
-            </CardHeader>
-            
-            <CardContent className="px-8 pb-8 pt-2">
-              <p className="text-sm text-slate-500 line-clamp-2 min-h-[40px] leading-relaxed italic">
-                {service.description || "Solusi cerdas untuk kebutuhan operasional kantor Anda."}
-              </p>
-              
-              <div className="mt-8 flex items-center group/btn text-blue-600 font-bold text-sm">
-                Buka Layanan
-                <ArrowRight className="h-4 w-4 ml-2 transition-transform duration-300 group-hover/btn:translate-x-2" />
-              </div>
-            </CardContent>
-            
-            {/* Background Accent */}
-            <div className={`absolute -bottom-1 -right-1 h-24 w-24 rounded-full blur-3xl opacity-0 group-hover:opacity-20 transition-opacity duration-700 ${
-              service.type === 'booking' ? 'bg-indigo-400' : 
-              service.type === 'repair' ? 'bg-orange-400' : 'bg-blue-400'
-            }`} />
-          </Card>
-        ))}
-        
-        {/* ADD EMPTY STATE / COMING SOON CARD IF FEW SERVICES */}
-        {services.length < 4 && (
-          <Card className="border-2 border-dashed border-slate-200 bg-transparent shadow-none flex flex-col items-center justify-center p-8 text-center opacity-50">
-             <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-               <ShieldCheck className="h-6 w-6 text-slate-400" />
-             </div>
-             <p className="text-sm font-semibold text-slate-900">Layanan Lain Segera Hadir</p>
-             <p className="text-xs text-slate-500 mt-1">Kami terus berinovasi untuk Anda.</p>
-          </Card>
-        )}
-      </div>
+
+                <div className="flex bg-slate-100/50 p-1 rounded-xl border border-slate-200 shadow-sm">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setViewMode("table")}
+                        className={`h-9 px-3 rounded-lg flex items-center gap-2 text-xs font-bold transition-all ${
+                            viewMode === "table" ? "shadow-sm bg-white text-blue-600" : "text-slate-500 hover:text-slate-900"
+                        }`}
+                    >
+                        <List className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Tabel</span>
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setViewMode("card")}
+                        className={`h-9 px-3 rounded-lg flex items-center gap-2 text-xs font-bold transition-all ${
+                            viewMode === "card" ? "shadow-sm bg-white text-blue-600" : "text-slate-500 hover:text-slate-900"
+                        }`}
+                    >
+                        <LayoutGrid className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Kartu</span>
+                    </Button>
+                </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Grid Cards */}
+      {paginatedServices.length === 0 ? (
+        <div className="text-center py-20 bg-slate-50/50 rounded-3xl border-2 border-dashed border-slate-200">
+          <Package className="h-16 w-16 mx-auto text-slate-300 mb-4 opacity-50" />
+          <h3 className="text-xl font-bold text-slate-900">Layanan tidak ditemukan</h3>
+          <p className="text-slate-500 max-w-xs mx-auto mt-2">Coba kata kunci lain atau hubungi admin jika Anda memerlukan bantuan khusus.</p>
+          <Button variant="outline" onClick={() => { setSearch(''); setFilterType('all'); }} className="mt-6 rounded-xl">Lihat Semua Layanan</Button>
+        </div>
+      ) : viewMode === 'table' ? (
+        /* TABLE VIEW */
+        <Card className="border-none shadow-sm overflow-hidden bg-white">
+          <Table>
+            <TableHeader className="bg-slate-50/80">
+              <TableRow className="border-none hover:bg-transparent">
+                <TableHead className="font-bold text-xs uppercase tracking-wider text-slate-500 pl-6">Nama Layanan</TableHead>
+                <TableHead className="font-bold text-xs uppercase tracking-wider text-slate-500">Kategori</TableHead>
+                <TableHead className="font-bold text-xs uppercase tracking-wider text-slate-500">Deskripsi</TableHead>
+                <TableHead className="w-[80px] text-right pr-6"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedServices.map((service) => {
+                const theme = getCategoryTheme(service.type);
+                return (
+                  <TableRow 
+                    key={service.id} 
+                    className="group border-slate-50 cursor-pointer hover:bg-blue-50/30 transition-colors"
+                    onClick={() => navigate(`/services/${service.slug}`)}
+                  >
+                    <TableCell className="pl-6 py-4">
+                        <div className="flex items-center gap-4">
+                            <div className={`p-2.5 rounded-xl transition-all group-hover:scale-110 ${theme.bg}`}>
+                                {getIcon(service.icon, service.type)}
+                            </div>
+                            <p className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{service.name}</p>
+                        </div>
+                    </TableCell>
+                    <TableCell>
+                        <Badge variant="outline" className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border-none ${theme.badge}`}>
+                             {service.type === 'booking' ? 'Reservasi' : service.type === 'repair' ? 'Perbaikan' : 'Umum'}
+                        </Badge>
+                    </TableCell>
+                    <TableCell>
+                        <p className="text-xs text-slate-400 italic line-clamp-1 max-w-[300px]">{service.description || "-"}</p>
+                    </TableCell>
+                    <TableCell className="text-right pr-6">
+                         <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                             <ChevronRight className="h-4 w-4" />
+                         </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Card>
+      ) : (
+        /* CARD VIEW - COMPACT */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {paginatedServices.map((service) => {
+            const theme = getCategoryTheme(service.type);
+            return (
+              <Card 
+                key={service.id} 
+                className="group relative overflow-hidden border-none shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer bg-white"
+                onClick={() => navigate(`/services/${service.slug}`)}
+              >
+                <div className={`absolute top-0 left-0 w-1 h-full ${theme.accent} opacity-40`} />
+                <CardHeader className="p-4 flex flex-row items-center gap-4">
+                  <div className={`p-2.5 rounded-xl transition-transform duration-500 group-hover:scale-110 flex-shrink-0 ${theme.bg}`}>
+                    {getIcon(service.icon, service.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <Badge variant="outline" className={`text-[9px] uppercase font-black border-none px-0 leading-none h-auto mb-1 flex items-center gap-1 ${theme.text}`}>
+                        <div className={`h-1 w-1 rounded-full ${theme.accent}`} />
+                        {service.type === 'booking' ? 'Reservasi' : service.type === 'repair' ? 'Perbaikan' : 'Umum'}
+                    </Badge>
+                    <CardTitle className="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1 leading-tight">
+                        {service.name}
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 pt-0">
+                  <p className="text-[10px] text-slate-400 line-clamp-2 leading-snug italic opacity-80">
+                    {service.description || "Solusi cerdas untuk kebutuhan operasional kantor Anda."}
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* PAGINATION */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4 px-2">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                Halaman {currentPage} dari {totalPages}
+            </p>
+            <div className="flex items-center gap-2">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="h-9 px-4 rounded-xl border-slate-200 font-bold text-xs"
+                >
+                    Kembali
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="h-9 px-4 rounded-xl border-slate-200 font-bold text-xs"
+                >
+                    Lanjut
+                </Button>
+            </div>
+        </div>
+      )}
     </div>
   );
-}
+}
