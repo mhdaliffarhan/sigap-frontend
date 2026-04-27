@@ -9,9 +9,10 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Star, Loader2 } from 'lucide-react';
+import { Star, Loader2, MessageSquareHeart } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -58,6 +59,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
   };
 
   const handleClose = () => {
+    if (isSubmitting) return;
     setRating(0);
     setHoveredRating(0);
     setFeedbackText('');
@@ -66,31 +68,57 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
 
   const handleSkip = () => {
     if (rating === 0 && !feedbackText.trim()) {
-      toast.warning('Anda belum mengisi feedback. Tiket sudah ditutup, Anda bisa mengisi feedback nanti melalui tombol "Isi Feedback"', {
+      toast.info('Anda bisa mengisi feedback nanti melalui tombol di halaman detail tiket.', {
         duration: 4000,
       });
     }
     handleClose();
   };
 
+  const ratingDescriptions = [
+    '',
+    'Sangat Tidak Memuaskan',
+    'Kurang Memuaskan',
+    'Cukup Memuaskan',
+    'Memuaskan',
+    'Sangat Memuaskan'
+  ];
+
+  const ratingColors = [
+    'text-slate-200',
+    'text-red-400',
+    'text-orange-400',
+    'text-yellow-400',
+    'text-emerald-400',
+    'text-blue-500'
+  ];
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-md:max-w-[450px] md:max-h-[90vh] max-md:max-h-[80vh] overflow-y-scroll">
-        <DialogHeader>
-          <DialogTitle>Berikan Feedback</DialogTitle>
-          <DialogDescription>
-            Bagaimana pengalaman Anda dengan layanan perbaikan untuk tiket{' '}
-            <span className="font-semibold text-foreground">{ticketNumber}</span>?
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-md p-0 overflow-hidden border-slate-200 rounded-xl shadow-xl bg-white">
+        {/* Header - Consistent with Ticket Detail Cards */}
+        <div className="bg-slate-50/50 p-6 border-b border-slate-100">
+          <DialogHeader className="space-y-1">
+            <div className="flex items-center gap-2 mb-1">
+              <Star className="h-4 w-4 text-blue-500 fill-blue-500" />
+              <DialogTitle className="text-lg font-bold text-slate-800">
+                Berikan Feedback & Rating
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-slate-500 text-sm">
+              Bagaimana pengalaman Anda dengan layanan untuk tiket <span className="text-slate-900 font-semibold">#{ticketNumber}</span>?
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="space-y-6 py-4">
-          {/* Rating Stars */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              Rating Kepuasan <span className="text-red-500">*</span>
+        <div className="p-6 space-y-6">
+          {/* Rating Section */}
+          <div className="space-y-4">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block">
+              Rating Kepuasan
             </label>
-            <div className="flex gap-2">
+            
+            <div className="flex items-center gap-3">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
@@ -98,58 +126,68 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
                   onClick={() => setRating(star)}
                   onMouseEnter={() => setHoveredRating(star)}
                   onMouseLeave={() => setHoveredRating(0)}
-                  className="transition-transform hover:scale-110 focus:outline-none"
                   disabled={isSubmitting}
+                  className="relative transition-transform active:scale-95 outline-none"
                 >
                   <Star
-                    className={`h-10 w-10 ${
+                    className={`h-9 w-9 transition-colors duration-150 ${
                       star <= (hoveredRating || rating)
                         ? 'fill-yellow-400 text-yellow-400'
-                        : 'text-gray-300'
+                        : 'text-slate-200'
                     }`}
                   />
                 </button>
               ))}
+              
+              <AnimatePresence mode="wait">
+                {rating > 0 && (
+                  <motion.p
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 5 }}
+                    className={`text-xs font-bold uppercase tracking-tight ml-2 ${ratingColors[rating]}`}
+                  >
+                    {ratingDescriptions[rating]}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
-            {rating > 0 && (
-              <p className="text-sm text-muted-foreground">
-                {rating === 1 && 'Sangat Tidak Puas'}
-                {rating === 2 && 'Tidak Puas'}
-                {rating === 3 && 'Cukup'}
-                {rating === 4 && 'Puas'}
-                {rating === 5 && 'Sangat Puas'}
-              </p>
-            )}
           </div>
 
-          {/* Feedback Text */}
-          <div className="space-y-2">
-            <label htmlFor="feedback-text" className="text-sm font-medium">
-              Komentar Tambahan (Opsional)
-            </label>
-            <Textarea
-              id="feedback-text"
-              placeholder="Ceritakan pengalaman Anda dengan layanan kami..."
-              value={feedbackText}
-              onChange={(e) => setFeedbackText(e.target.value)}
-              rows={4}
-              maxLength={1000}
-              disabled={isSubmitting}
-              className="resize-none"
-            />
-            <p className="text-xs text-muted-foreground text-right">
-              {feedbackText.length}/1000 karakter
-            </p>
+          {/* Feedback Textarea */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-slate-700">
+              <MessageSquareHeart className="h-3.5 w-3.5 text-blue-500" />
+              <label htmlFor="feedback-text" className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                Komentar Tambahan <span className="opacity-50 font-normal lowercase">(Opsional)</span>
+              </label>
+            </div>
+            <div className="relative group">
+              <Textarea
+                id="feedback-text"
+                placeholder="Ceritakan pengalaman Anda atau berikan saran perbaikan..."
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                rows={4}
+                maxLength={1000}
+                disabled={isSubmitting}
+                className="resize-none rounded-xl border-slate-200 focus:border-blue-400 focus:ring-blue-100 transition-all text-sm leading-relaxed p-4"
+              />
+              <div className="absolute bottom-2 right-3 text-[9px] font-mono text-slate-300">
+                {feedbackText.length}/1000
+              </div>
+            </div>
           </div>
         </div>
 
-        <DialogFooter>
+        {/* Footer Area */}
+        <DialogFooter className="p-6 pt-0 flex items-center justify-between gap-3">
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             onClick={handleSkip}
             disabled={isSubmitting}
-            className="cursor-pointer"
+            className="text-slate-400 hover:text-slate-600 hover:bg-slate-50 text-xs px-4"
           >
             Lewati
           </Button>
@@ -157,13 +195,10 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting || rating === 0}
-            className="cursor-pointer"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 h-10 rounded-lg shadow-sm transition-all"
           >
             {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Mengirim...
-              </>
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               'Kirim Feedback'
             )}
@@ -173,3 +208,4 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
     </Dialog>
   );
 };
+

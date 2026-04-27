@@ -9,7 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Shield, ShieldCheck, Wrench, Package, User, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import type { User as UserType, UserRole } from '@/types';
 
 interface RoleSwitcherDialogProps {
@@ -32,56 +32,24 @@ export const RoleSwitcherDialog: React.FC<RoleSwitcherDialogProps> = ({
   // Get available roles from currentUser
   const availableRoles = currentUser?.roles || [currentUser?.role];
 
-  const getRoleConfig = (role: UserRole) => {
-    switch (role) {
-      case 'super_admin':
-        return {
-          label: 'Super Admin',
-          icon: Shield,
-          color: 'purple',
-          description: 'Akses penuh ke semua fitur sistem',
-        };
-      case 'admin_layanan':
-        return {
-          label: 'Admin Layanan',
-          icon: ShieldCheck,
-          color: 'blue',
-          description: 'Mengelola tiket perbaikan dan zoom',
-        };
-      case 'admin_penyedia':
-        return {
-          label: 'Admin Penyedia',
-          icon: Package,
-          color: 'green',
-          description: 'Mengelola pengadaan dan work order',
-        };
-      case 'teknisi':
-        return {
-          label: 'Teknisi',
-          icon: Wrench,
-          color: 'orange',
-          description: 'Menangani perbaikan barang',
-        };
-      case 'pegawai':
-        return {
-          label: 'Pegawai',
-          icon: User,
-          color: 'gray',
-          description: 'Mengajukan tiket dan permintaan',
-        };
-      default:
-        return {
-          label: role,
-          icon: User,
-          color: 'gray',
-          description: '',
-        };
-    }
+  const formatRoleLabel = (role: string) => {
+    return role.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
 
   const handleConfirm = () => {
     onRoleSwitch(selectedRole);
     onOpenChange(false);
+  };
+
+  // Generate generic color variations based on string length to give variety
+  const getRoleColor = (role: string) => {
+    const colors = ['blue', 'indigo', 'purple', 'emerald', 'teal', 'cyan'];
+    let hash = 0;
+    for (let i = 0; i < role.length; i++) {
+        hash = role.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
   };
 
   return (
@@ -94,45 +62,45 @@ export const RoleSwitcherDialog: React.FC<RoleSwitcherDialogProps> = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="space-y-2 my-4 max-h-[60vh] overflow-y-scroll pr-2">
+        <div className="space-y-2 my-4 max-h-[60vh] overflow-y-auto pr-2">
           {availableRoles.map((role) => {
-            const config = getRoleConfig(role);
-            const Icon = config.icon;
             const isActive = selectedRole === role;
             const isCurrent = activeRole === role;
+            const label = formatRoleLabel(role);
+            const colorName = getRoleColor(role);
 
             return (
               <button
                 key={role}
                 onClick={() => setSelectedRole(role)}
                 className={`w-full p-4 rounded-lg border-2 transition-all text-left ${isActive
-                  ? `border-${config.color}-500 bg-${config.color}-50`
+                  ? 'border-blue-500 bg-blue-50'
                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                   }`}
               >
                 <div className="flex items-start gap-3">
                   <div
                     className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isActive
-                      ? config.color === 'gray' ? 'bg-gray-800' : `bg-${config.color}-500`
-                      : `bg-${config.color}-100`
-                      }`}
+                      ? `bg-${colorName}-600 text-white`
+                      : `bg-${colorName}-100 text-${colorName}-700`
+                      } font-bold text-lg`}
                   >
-                    <Icon className={`h-5 w-5 ${isActive ? 'text-white' : `text-${config.color}-600`}`} />
+                    {label.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-semibold">{config.label}</p>
+                      <p className="font-semibold">{label}</p>
                       {isCurrent && (
                         <Badge variant="secondary" className="text-xs">
                           Aktif Sekarang
                         </Badge>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">{config.description}</p>
+                    <p className="text-sm text-gray-500 mt-1">Akses mode sebagai {label}</p>
                   </div>
                   {isActive && (
-                    <div className={`flex-shrink-0`}>
-                      <div className={`h-6 w-6 rounded-full bg-${config.color}-500 flex items-center justify-center`}>
+                    <div className="flex-shrink-0">
+                      <div className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center">
                         <Check className="h-4 w-4 text-white" />
                       </div>
                     </div>
@@ -152,7 +120,7 @@ export const RoleSwitcherDialog: React.FC<RoleSwitcherDialogProps> = ({
             disabled={selectedRole === activeRole}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            Ganti ke {getRoleConfig(selectedRole).label}
+            Ganti ke {formatRoleLabel(selectedRole)}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

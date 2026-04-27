@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { TicketWizard } from "./ticket-wizard";
 import { TicketProgressTracker } from "./ticket-progress-tracker";
 import { TicketProgressTrackerZoom } from "./ticket-progress-tracker-zoom";
 import { WorkOrderForm } from "@/components/views/work-orders/work-order-form";
@@ -53,6 +54,7 @@ import {
   useCommentState,
   useZoomReviewModal,
 } from "./ticket-detail-hooks";
+import { FeedbackModal } from "./feedback-modal";
 
 interface TicketDetailProps {
   ticketId: string;
@@ -80,6 +82,7 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
   // State untuk Dialog Aksi PJ
   const [resolveOpen, setResolveOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   // Multi-role support
   const effectiveRole = activeRole || currentUser.role;
@@ -343,35 +346,54 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
         onShowCompleteDialog={() => {}}
       />
 
+      {/* === WIZARD PROGRESS === */}
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <TicketWizard status={ticket.status} />
+      </div>
+
       {/* --- PANEL AKSI PJ / SUPER ADMIN --- */}
       {canAct && (
-        <Card className={`shadow-sm animate-in slide-in-from-top-2 ${isSuperAdmin ? 'border-purple-200 bg-purple-50/20' : 'border-blue-200 bg-blue-50/20'}`}>
-          <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>
-              <h4 className={`font-semibold flex items-center gap-2 ${isSuperAdmin ? 'text-purple-900' : 'text-blue-900'}`}>
-                {isSuperAdmin ? <ShieldAlert className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />} 
-                {isSuperAdmin ? "Intervensi Super Admin" : "Aksi Penanganan"}
-              </h4>
-              <p className="text-sm text-muted-foreground mt-1">
-                {isSuperAdmin 
-                  ? "Anda memiliki akses penuh untuk mengelola tiket ini." 
-                  : "Anda sedang bertugas sebagai PJ tiket ini. Silakan proses."}
-              </p>
+        <Card className={`shadow-sm animate-in slide-in-from-top-2 rounded-xl border-l-[6px] bg-white ${isSuperAdmin ? 'border-l-purple-500 border-slate-200' : 'border-l-blue-500 border-slate-200'}`}>
+          <CardContent className="p-4 md:p-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-2xl shrink-0 ${isSuperAdmin ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'}`}>
+                {isSuperAdmin ? <ShieldAlert className="h-6 w-6 md:h-7 md:w-7" /> : <AlertCircle className="h-6 w-6 md:h-7 md:w-7" />}
+              </div>
+              <div className="space-y-0.5">
+                <h4 className={`text-lg md:text-xl font-black tracking-tight ${isSuperAdmin ? 'text-purple-900' : 'text-blue-900'}`}>
+                  {isSuperAdmin ? "Intervensi Super Admin" : "Aksi Penanganan"}
+                </h4>
+                <p className="text-sm text-slate-500 font-medium">
+                  {isSuperAdmin 
+                    ? "Mode otoritas penuh untuk eksekusi operasional tiket." 
+                    : "Anda sedang bertugas. Pastikan semua proses tercatat."}
+                </p>
+              </div>
             </div>
-            <div className="flex gap-2 w-full sm:w-auto">
-               <Button 
-                 variant="outline" 
-                 onClick={() => setTransferOpen(true)} 
-                 className={`flex-1 sm:flex-none hover:bg-opacity-50 ${isSuperAdmin ? 'border-purple-200 text-purple-700' : 'border-blue-200 text-blue-700'}`}
-               >
-                 <ArrowRightLeft className="mr-2 h-4 w-4"/> Delegasi
-               </Button>
-               <Button 
-                 onClick={() => setResolveOpen(true)} 
-                 className={`flex-1 sm:flex-none text-white ${isSuperAdmin ? 'bg-purple-600 hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'}`}
-               >
-                 <CheckCircle className="mr-2 h-4 w-4"/> Selesaikan
-               </Button>
+            
+            <div className="grid grid-cols-2 lg:flex gap-3 w-full lg:w-auto">
+               {ticket.service_category ? (
+                 <DynamicWorkflowActions 
+                   ticketId={ticketId} 
+                   onUpdate={refreshData} 
+                 />
+               ) : (
+                 <>
+                   <Button 
+                     variant="outline" 
+                     onClick={() => setTransferOpen(true)} 
+                     className="h-11 px-4 lg:px-6 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-sm"
+                   >
+                     <ArrowRightLeft className="mr-2 h-4 w-4 shrink-0"/> Delegasi
+                   </Button>
+                   <Button 
+                     onClick={() => setResolveOpen(true)} 
+                     className={`h-11 px-4 lg:px-6 rounded-xl text-white font-bold text-sm shadow-lg transition-all hover:translate-y-[-2px] active:translate-y-[0] ${isSuperAdmin ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-200' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200'}`}
+                   >
+                     <CheckCircle className="mr-2 h-4 w-4 shrink-0"/> Selesaikan
+                   </Button>
+                 </>
+               )}
             </div>
           </CardContent>
         </Card>
@@ -379,12 +401,14 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
 
       {/* --- ALERT: PUNYA ROLE TAPI SALAH MODE --- */}
       {hasRightRoleButWrongMode && (
-        <Card className="border-amber-200 bg-amber-50/30 border-dashed">
-          <CardContent className="p-3 flex items-center gap-3 text-sm text-amber-800">
-            <Lock className="h-4 w-4" />
+        <Card className="border-l-4 border-l-amber-500 bg-amber-50/30 rounded-xl border-slate-200">
+          <CardContent className="p-4 flex items-center gap-4 text-sm text-amber-800 font-medium">
+            <div className="bg-amber-100 p-2 rounded-lg">
+              <Lock className="h-5 w-5 text-amber-600" />
+            </div>
             <span>
-              Tiket ini ditujukan untuk role <b>{ticket.current_assignee_role}</b>. 
-              Switch role Anda untuk memprosesnya.
+              Tiket ini ditujukan untuk role <b className="text-amber-900">{ticket.current_assignee_role}</b>. 
+              Gunakan fitur <button className="underline font-bold hover:text-amber-900">Switch Role</button> untuk mulai memproses.
             </span>
           </CardContent>
         </Card>
@@ -414,9 +438,7 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
         />
       )}
 
-      <DynamicTicketInfo ticket={ticket} />
-
-      {/* Info */}
+      {/* Main Content Area: Side-by-side Layout handled inside TicketDetailInfo */}
       <TicketDetailInfo
         ticket={ticket}
         ticketOwner={ticketOwner}
@@ -430,17 +452,11 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
         commentsLoading={commentsLoading}
         hasMore={hasMore}
         onLoadMoreComments={() => loadMoreComments(ticketId)}
+        dynamicInfo={<DynamicTicketInfo ticket={ticket} />}
+        onShowFeedback={() => setFeedbackOpen(true)}
+        isOwner={String(currentUser?.id) === String(ticket.userId || (ticket as any).user_id)}
       />
 
-      <div className="bg-white dark:bg-slate-900 rounded-lg border p-4 shadow-sm">
-        <h3 className="text-sm font-semibold mb-2 text-slate-500 uppercase tracking-wider">
-          Riwayat Tindak Lanjut (Workflow)
-        </h3>
-        <DynamicWorkflowActions 
-          ticketId={ticketId} 
-          onUpdate={refreshData}
-        />
-      </div>
 
       {/* Progress Tracker */}
       {ticket.type === "perbaikan" && <TicketProgressTracker ticket={ticket} />}
@@ -646,6 +662,17 @@ export const TicketDetail: React.FC<TicketDetailProps> = ({
           }}
         />
       )}
+
+      {/* Feedback Modal */}
+      <FeedbackModal
+        isOpen={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        ticketId={ticket.id}
+        ticketNumber={ticket.ticket_number || ticket.ticketNumber}
+        onSuccess={() => {
+          setRefreshKey((prev) => prev + 1);
+        }}
+      />
     </motion.div>
   );
 };

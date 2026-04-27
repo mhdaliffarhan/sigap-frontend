@@ -116,8 +116,15 @@ interface BaseTicket {
   
   start_date?: string;
   end_date?: string;
+  ticket_data?: Record<string, any>;
+  action_data?: Record<string, any>;
   dynamic_form_data?: Record<string, any>; // Menyimpan data JSON form
   current_assignee_role?: string;
+  feedback?: TicketFeedback;
+  
+  user?: User; // Backend relation
+  assignedUser?: User; // Backend relation
+  assigned_user?: User; // For compatibility with snake_case backend return
   // =========================================
 }
 
@@ -311,4 +318,15 @@ export interface Notification {
   read: boolean;
   link?: string;
   createdAt: string;
+}
+
+export interface TicketFeedback {
+  id: number;
+  ticket_id: number;
+  user_id: string;
+  user_name?: string;
+  rating: number;
+  feedback_text?: string;
+  created_at: string;
+  updated_at: string;
 }

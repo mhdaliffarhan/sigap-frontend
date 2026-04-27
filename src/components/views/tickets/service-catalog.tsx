@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Calendar, Wrench, FileText, ArrowRight, Loader2,
-  Search, Package, ChevronRight, Sparkles, Boxes
+  Search, Package, Sparkles
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -52,18 +52,18 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({ onSelectService 
     fetchServices();
   }, []);
 
-  // Helper Icon dengan gaya premium
+  // Helper Icon dengan gaya sederhana & konsisten
   const getTypeIcon = (type: string) => {
-    const size = "h-7 w-7";
+    const size = "h-5 w-5";
     switch (type) {
       case 'booking':
-        return <div className="p-3 bg-blue-500/10 rounded-xl"><Calendar className={`${size} text-blue-600`} /></div>;
+        return <div className="p-2.5 bg-blue-50 rounded-lg"><Calendar className={`${size} text-blue-500`} /></div>;
       case 'repair':
-        return <div className="p-3 bg-orange-500/10 rounded-xl"><Wrench className={`${size} text-orange-600`} /></div>;
+        return <div className="p-2.5 bg-orange-50 rounded-lg"><Wrench className={`${size} text-orange-500`} /></div>;
       case 'service':
-        return <div className="p-3 bg-emerald-500/10 rounded-xl"><FileText className={`${size} text-emerald-600`} /></div>;
+        return <div className="p-2.5 bg-emerald-50 rounded-lg"><FileText className={`${size} text-emerald-500`} /></div>;
       default:
-        return <div className="p-3 bg-slate-500/10 rounded-xl"><Package className={`${size} text-slate-600`} /></div>;
+        return <div className="p-2.5 bg-slate-50 rounded-lg"><Package className={`${size} text-slate-500`} /></div>;
     }
   };
 
@@ -84,37 +84,39 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({ onSelectService 
 
   return (
     <div className="flex flex-col gap-8 lg:p-0 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700 w-full">
-      {/* HEADER SECTION - PREMIUM STYLE */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-blue-600 to-indigo-700 p-8 lg:p-14 text-white shadow-2xl shadow-blue-200/50">
+      {/* HEADER SECTION - CLEAN & PROFESSIONAL STYLE */}
+      <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-8 lg:p-12 shadow-sm">
         <div className="relative z-10 max-w-2xl text-left">
-          <Badge className="mb-4 bg-white/20 text-white border-none backdrop-blur-md px-3 py-1 text-[10px] font-bold uppercase tracking-widest">
-            <Sparkles className="h-3.5 w-3.5 mr-2 inline text-yellow-300" /> Sistem Layanan Terpadu
-          </Badge>
-          <h2 className="text-4xl lg:text-6xl font-extrabold tracking-tight mb-4 leading-tight">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-2 bg-blue-50 rounded-lg text-blue-500">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Pusat Layanan Terpadu</span>
+          </div>
+          
+          <h2 className="text-3xl lg:text-5xl font-black tracking-tight mb-4 text-slate-800">
             Pilih Layanan
           </h2>
-          <p className="text-blue-50 text-lg lg:text-xl leading-relaxed opacity-90 font-medium">
-            Apa yang bisa kami bantu hari ini? Pilih layanan di bawah untuk mulai membuat pengajuan baru.
+          <p className="text-slate-500 text-lg leading-relaxed font-medium">
+            Apa yang bisa kami bantu hari ini? Pilih kategori di bawah untuk mulai membuat pengajuan baru Anda.
           </p>
 
-          <div className="relative mt-10 max-w-md group">
-            <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 h-5 w-5 text-blue-200 group-focus-within:text-white transition-all duration-300 z-10" />
+          <div className="relative mt-8 max-w-md group">
+            <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-all duration-300 z-10" />
             <Input
-              placeholder="Cari layanan (misal: Aula, Laptop)..."
-              className="pl-20 h-16 bg-white/10 border-white/20 text-white placeholder:text-blue-100/50 rounded-2xl focus:ring-4 focus:ring-white/20 focus:bg-white/20 transition-all border-none ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-lg"
-              style={{ paddingLeft: '4.8rem' }}
+              placeholder="Cari layanan (misal: Ruangan, Perbaikan)..."
+              className="pl-14 h-14 bg-slate-50 border-slate-200 text-slate-700 placeholder:text-slate-400 rounded-xl focus:ring-4 focus:ring-blue-100 transition-all border ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-md"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
         </div>
-        <Boxes className="absolute -right-10 -bottom-10 h-80 w-80 text-white opacity-10 rotate-12" />
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/50 rounded-full -mr-32 -mt-32 blur-3xl opacity-50" />
       </div>
 
       {/* Grid Cards */}
       {filteredServices.length === 0 ? (
-        <div className="text-center py-20 bg-slate-50/50 rounded-3xl border-2 border-dashed border-slate-200">
+        <div className="text-center py-20 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200">
           <Package className="h-16 w-16 mx-auto text-slate-300 mb-4 opacity-50" />
           <h3 className="text-xl font-bold text-slate-900">Layanan tidak ditemukan</h3>
           <p className="text-slate-500 max-w-xs mx-auto mt-2">Coba kata kunci lain atau hubungi admin jika Anda memerlukan bantuan khusus.</p>
@@ -125,50 +127,36 @@ export const ServiceCatalog: React.FC<ServiceCatalogProps> = ({ onSelectService 
           {filteredServices.map((service) => (
             <Card
               key={service.id}
-              className="group relative overflow-hidden border-none shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 cursor-pointer bg-white"
+              className="group relative overflow-hidden border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-300 cursor-pointer bg-white rounded-xl"
               onClick={() => onSelectService(service)}
             >
-              <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-                  <ChevronRight className="h-5 w-5" />
-                </div>
-              </div>
-
-              <CardHeader className="pt-8 px-8 flex flex-col items-start gap-4">
-                <div className="w-fit transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3">
+              <CardHeader className="pt-6 px-6 flex flex-row items-center gap-4">
+                <div className="shrink-0">
                   {getTypeIcon(service.type)}
                 </div>
-                <div className="space-y-1 text-left w-full">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge variant="outline" className={`text-[10px] uppercase font-bold border-none px-0 ${service.type === 'booking' ? 'text-indigo-500' :
-                        service.type === 'repair' ? 'text-orange-500' : 'text-emerald-500'
-                      }`}>
-                      {service.type === 'booking' ? 'Reservasi' :
-                        service.type === 'repair' ? 'Perbaikan' : 'Umum'}
-                    </Badge>
-                    <span className="text-slate-300">•</span>
-                    <span className="text-[10px] text-slate-400 font-medium italic">Tersedia</span>
-                  </div>
-                  <CardTitle className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                <div className="space-y-0.5 text-left flex-1 min-w-0">
+                  <Badge variant="outline" className={`text-[9px] uppercase font-bold border-none p-0 h-auto ${
+                      service.type === 'booking' ? 'text-blue-500' :
+                      service.type === 'repair' ? 'text-orange-500' : 'text-emerald-500'
+                    }`}>
+                    {service.type === 'booking' ? 'Reservasi' :
+                      service.type === 'repair' ? 'Perbaikan' : 'Umum'}
+                  </Badge>
+                  <CardTitle className="text-lg font-bold text-slate-800 group-hover:text-blue-600 transition-colors truncate">
                     {service.name}
                   </CardTitle>
                 </div>
               </CardHeader>
-
-              <CardContent className="px-8 pb-8 pt-2 text-left">
-                <p className="text-sm text-slate-500 line-clamp-2 min-h-[40px] leading-relaxed italic">
+              
+              <CardContent className="px-6 pb-6 pt-0 text-left">
+                <p className="text-xs text-slate-500 line-clamp-2 min-h-[32px] leading-relaxed mb-4">
                   {service.description || "Solusi cerdas untuk kebutuhan operasional kantor Anda."}
                 </p>
-
-                <div className="mt-8 flex items-center group/btn text-blue-600 font-bold text-sm">
-                  Pilih & Buat Pengajuan
-                  <ArrowRight className="h-4 w-4 ml-2 transition-transform duration-300 group-hover/btn:translate-x-2" />
+                <div className="flex items-center text-blue-600 font-bold text-xs">
+                  Buat Pengajuan
+                  <ArrowRight className="h-3 w-3 ml-1.5 transition-transform group-hover:translate-x-1" />
                 </div>
               </CardContent>
-
-              <div className={`absolute -bottom-1 -right-1 h-24 w-24 rounded-full blur-3xl opacity-0 group-hover:opacity-20 transition-opacity duration-700 ${service.type === 'booking' ? 'bg-indigo-400' :
-                  service.type === 'repair' ? 'bg-orange-400' : 'bg-emerald-400'
-                }`} />
             </Card>
           ))}
         </div>

@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import {
   CheckCircle,
   Package,
   FolderKanban,
   ArrowUpRight,
-  Loader,
   Wrench,
+  Clock,
+  AlertCircle,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { api } from '@/lib/api';
@@ -45,7 +46,7 @@ interface DashboardStats {
 }
 
 export const AdminPenyediaDashboard: React.FC<AdminPenyediaDashboardProps> = ({
-  currentUser: _currentUser,
+  currentUser,
   onNavigate,
 }) => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -111,74 +112,74 @@ export const AdminPenyediaDashboard: React.FC<AdminPenyediaDashboardProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Welcome Section - matching admin-layanan style */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-blue-500 rounded-3xl p-8 text-white border border-white/30 shadow-[inset_0_0_20px_rgba(255,255,255,0.5),0_10px_20px_rgba(0,0,0,0.2)]"
-      >
-        <div className="flex flex-row items-center justify-between gap-4">
-          <div>
-            <h1 className="max-md:text-2xl text-3xl mb-2 font-bold">
-              Admin Penyedia Dashboard
-            </h1>
-            <p className="text-blue-100 max-md:text-sm md:text-base">
-              Kelola work order dan pengadaan dari teknisi
-            </p>
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* HEADER SECTION */}
+      <div className="flex flex-wrap items-start justify-between gap-4 max-md:flex-col">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 text-[10px] font-bold px-3 py-1 rounded-xl uppercase tracking-wider">
+              ADMIN PENYEDIA
+            </Badge>
+            <span className="text-slate-400 text-xs font-medium px-2 py-1 bg-slate-50 rounded-xl border border-slate-100 uppercase tracking-tight">
+              Procurement Control
+            </span>
           </div>
-          {/* Icon Package: Sesuai style user-dashboard */}
-          <div className="block shrink-0">
-            <Package className="hidden md:block max-md:h-14 max-md:w-14 md:h-20 md:w-20 text-black-300 opacity-50" />
-          </div>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+            Selamat Datang, {currentUser.name}!
+          </h1>
+          <p className="text-slate-500 text-sm">
+            Kelola work order dan pengadaan aset dari teknisi secara efisien.
+          </p>
         </div>
+        
+        <div className="flex items-center gap-3 max-md:w-full max-md:flex-col">
+          <Button 
+            variant="outline"
+            onClick={() => onNavigate('work-orders')}
+            className="rounded-xl h-11 px-6 border-slate-200 text-slate-600 font-bold hover:bg-slate-50"
+          >
+            Semua Work Order
+          </Button>
+          <Button 
+            className="bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl h-11 px-6 shadow-md"
+            onClick={() => onNavigate('work-orders')}
+          >
+            Monitor Pengadaan
+          </Button>
+        </div>
+      </div>
 
-        <Separator className="my-6 bg-blue-300" />
-
-        {/* Statistics Grid (formerly Table) */}
-        {stats ? (
-          <div className="grid md:grid-cols-5 max-md:grid-cols-1">
-            {/* Item 1: Total */}
-            <div className="px-4 py-4 text-center border-b border-blue-300 md:border-none md:border-r">
-              <p className="text-blue-100 text-sm">Total Work Order</p>
-              <p className="text-3xl mt-1 font-bold">{stats.total}</p>
-              <p className="text-xs text-blue-200 mt-1">Semua work order</p>
-            </div>
-
-            {/* Item 2: Requested */}
-            <div className="px-4 py-4 text-center border-b border-blue-300 md:border-none md:border-r">
-              <p className="text-blue-100 text-sm">Requested</p>
-              <p className="text-3xl mt-1 font-bold">{stats.byStatus.requested}</p>
-              <p className="text-xs text-blue-200 mt-1">Menunggu proses</p>
-            </div>
-
-            {/* Item 3: In Procurement */}
-            <div className="px-4 py-4 text-center border-b border-blue-300 md:border-none md:border-r">
-              <p className="text-blue-100 text-sm">In Procurement</p>
-              <p className="text-3xl mt-1 font-bold">{stats.byStatus.in_procurement}</p>
-              <p className="text-xs text-blue-200 mt-1">Sedang pengadaan</p>
-            </div>
-
-            {/* Item 4: Completed */}
-            <div className="px-4 py-4 text-center border-b border-blue-300 md:border-none md:border-r">
-              <p className="text-blue-100 text-sm">Completed</p>
-              <p className="text-3xl mt-1 font-bold">{stats.byStatus.completed}</p>
-              <p className="text-xs text-blue-200 mt-1">Selesai</p>
-            </div>
-
-            {/* Item 5: Unsuccessful */}
-            <div className="px-4 py-4 text-center">
-              <p className="text-blue-100 text-sm">Unsuccessful</p>
-              <p className="text-3xl mt-1 font-bold">{stats.byStatus.unsuccessful}</p>
-              <p className="text-xs text-blue-200 mt-1">Tidak berhasil</p>
-            </div>
-          </div>
-        ) : (
-          <div className="w-full flex items-center justify-center py-8">
-            <Loader className="h-6 w-6 animate-spin text-black-600" />
-          </div>
-        )}
-      </motion.div>
+      {/* Stats Grid - Unified Slate Style */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        {[
+          { label: 'Total WO', value: stats?.total ?? 0, description: 'Semua work order', icon: Package, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Requested', value: stats?.byStatus.requested ?? 0, description: 'Menunggu proses', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { label: 'Procurement', value: stats?.byStatus.in_procurement ?? 0, description: 'Dalam pengadaan', icon: Wrench, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+          { label: 'Selesai', value: stats?.byStatus.completed ?? 0, description: 'Berhasil tuntas', icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { label: 'Gagal', value: stats?.byStatus.unsuccessful ?? 0, description: 'Tidak berhasil', icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
+        ].map((item, i) => (
+          <motion.div
+            key={item.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+          >
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-2xl group hover:shadow-md transition-all h-full">
+              <CardContent className="p-5">
+                <div className="flex flex-col items-center text-center gap-2">
+                   <div className={`h-12 w-12 rounded-xl ${item.bg} ${item.color} flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm`}>
+                    <item.icon className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">{item.label}</p>
+                    <h4 className="text-xl font-black text-slate-900 tracking-tight">{item.value}</h4>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
 
       {/* Work Order by Type - simple cards */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-3">

@@ -11,6 +11,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Search,
   Wrench,
   Video,
@@ -18,11 +26,14 @@ import {
   RotateCw,
   User as UserIcon,
   Calendar,
-  ChevronLeft,
-  ChevronRight,
   Info,
   Download,
-  Loader2,
+  Layout,
+  Layers,
+  List,
+  Eye,
+  Filter,
+  Ticket as TicketIcon
 } from "lucide-react";
 import { motion } from "motion/react";
 import { api, resolveApiUrl } from "@/lib/api";
@@ -64,6 +75,9 @@ export const TicketList: React.FC<TicketListProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [displayMode, setDisplayMode] = useState<"card" | "table">(() => 
+    typeof window !== 'undefined' && window.innerWidth >= 768 ? "table" : "card"
+  );
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [pagination, setPagination] = useState<PaginationMeta | null>(null);
   const [showStatusInfo, setShowStatusInfo] = useState(false);
@@ -238,13 +252,24 @@ export const TicketList: React.FC<TicketListProps> = ({
   };
 
   const getStatusBadge = (status: string) => {
+    const configs: Record<string, { label: string; className: string }> = {
+      submitted: { label: 'Pending', className: 'bg-slate-50 text-slate-700 border-slate-200' },
+      assigned: { label: 'Assigned', className: 'bg-blue-50 text-blue-700 border-blue-200' },
+      in_progress: { label: 'Diproses', className: 'bg-blue-50 text-blue-700 border-blue-200' },
+      on_hold: { label: 'On Hold', className: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+      closed: { label: 'Selesai', className: 'bg-green-50 text-green-700 border-green-200' },
+      pending_review: { label: 'Pending Review', className: 'bg-slate-50 text-slate-700 border-slate-200' },
+      approved: { label: 'Disetujui', className: 'bg-green-50 text-green-700 border-green-200' },
+      rejected: { label: 'Ditolak', className: 'bg-red-50 text-red-700 border-red-200' },
+      waiting_for_submitter: { label: 'Butuh Info', className: 'bg-orange-50 text-orange-700 border-orange-200' }
+    };
+
+    const config = configs[status] || { label: status, className: 'bg-gray-50 text-gray-700 border-gray-200' };
+
     return (
-      <div className="text-sm">
-        <span className="text-muted-foreground font-medium">status:</span>{" "}
-        <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
-          {status}
-        </span>
-      </div>
+      <Badge variant="outline" className={`${config.className} pb-0.5 text-xs font-medium rounded-full border`}>
+        {config.label}
+      </Badge>
     );
   };
 
@@ -307,176 +332,212 @@ export const TicketList: React.FC<TicketListProps> = ({
   };
 
   const getTypeLabel = (type: string) => {
-    const labels = {
+    const labels: Record<string, string> = {
       perbaikan: "Perbaikan",
       zoom_meeting: "Zoom Meeting",
+      "peminjaman-ruanganaula": "Peminjaman Ruangan",
     };
-    return labels[type as keyof typeof labels] || type;
+    if (labels[type]) return labels[type];
+    return type.split(/[-_]/).map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(' ');
   };
 
   const getTypeColor = (type: string) => {
-    const colors = {
-      perbaikan: "bg-orange-100 text-orange-800",
-      zoom_meeting: "bg-purple-100 text-purple-800",
+    const colors: Record<string, string> = {
+      perbaikan: "bg-orange-50 text-orange-800 border-orange-200",
+      zoom_meeting: "bg-purple-50 text-purple-800 border-purple-200",
+      "peminjaman-ruanganaula": "bg-blue-50 text-blue-800 border-blue-200",
     };
-    return colors[type as keyof typeof colors] || "bg-gray-100 text-gray-800";
+    return colors[type] || "bg-slate-50 text-slate-800 border-slate-200";
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Header - Clean Standard */}
       <div className="flex flex-wrap items-start justify-between gap-4 max-md:flex-col">
-        <div>
-          <h1 className="text-3xl font-bold">Kelola Tiket</h1>
-          <p className="text-muted-foreground">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] font-bold px-3 py-1 rounded-xl uppercase tracking-wider">
+              <TicketIcon className="h-3 w-3 mr-1.5 inline" /> 
+              MANAJEMEN TIKET
+            </Badge>
+            {isAdmin && <Badge className="bg-blue-600 text-white border-none text-[10px] font-bold px-3 py-1 rounded-xl">ADMIN</Badge>}
+          </div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Kelola Semua Tiket</h1>
+          <p className="text-slate-500 text-sm font-medium">
             {isAdminPenyedia
-              ? "Review dan kelola semua tiket perbaikan"
-              : "Review dan kelola semua tiket dari pengguna"}
+              ? "Tinjau dan kelola seluruh tiket perbaikan dari semua departemen."
+              : "Review, pantau, dan kelola seluruh tiket pengajuan layanan dari pengguna."}
           </p>
         </div>
-        {/* Export Button */}
-        <div className="flex items-center gap-3 max-md:w-full">
+        
+        {/* Export Button Integration */}
+        <div className="flex items-center gap-3 max-md:w-full max-md:flex-col">
           <Button
-            variant="outline"
-            size="sm"
             onClick={handleExportExcel}
             disabled={exporting}
-            className="h-8 rounded-full border-slate-300 bg-white px-4 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-black transition-all max-md:w-full max-md:h-10"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl h-11 px-6 shadow-md transition-all hover:-translate-y-0.5"
           >
             {exporting ? (
-              <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+              <RotateCw className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <Download className="mr-2 h-3.5 w-3.5 text-slate-500" />
+              <Download className="mr-2 h-4 w-4" />
             )}
-            Unduh Laporan (.xlsx)
+            Ekspor Laporan (.xlsx)
           </Button>
         </div>
       </div>
 
-      {/* Filter Controls */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap gap-3 items-center max-md:flex-col max-md:items-stretch">
-            {/* Search */}
-            <div className="relative flex-1 min-w-[180px] h-10 max-md:w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Cari tiket..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 h-full text-sm w-full !ring-offset-0"
-              />
+      {/* Filter Controls - Grid 12-Kolom Standard */}
+      <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white rounded-xl gap-0">
+        <CardContent className="px-6 py-4">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+            {/* Search - 7 Columns */}
+            <div className="relative lg:col-span-7 w-full group">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-all h-4 w-4 z-10" />
+                <Input
+                    placeholder="Cari tiket, nomor, atau pengaju..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 h-10 text-sm w-full bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-blue-100 rounded-xl transition-all font-medium shadow-none"
+                />
             </div>
 
-            {/* Admin Penyedia - Status Filter only */}
-            {isAdminPenyedia && (
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="!h-10 text-sm flex-1 max-md:w-full">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">
-                    Semua Tiket Perbaikan ({statsLoading ? "..." : stats.total})
-                  </SelectItem>
-                  <SelectItem value="submitted">
-                    Pending ({statsLoading ? "..." : stats.pending})
-                  </SelectItem>
-                  <SelectItem value="on_hold">
-                    On Hold ({statsLoading ? "..." : stats.in_progress})
-                  </SelectItem>
-                  <SelectItem value="closed">
-                    Closed ({statsLoading ? "..." : stats.completed})
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-
-            {/* Non-Admin Penyedia - Type + Status */}
-            {!isAdminPenyedia && (
-              <>
-                <Select value={filterType} onValueChange={setFilterType}>
-                  <SelectTrigger className="!h-10 text-sm flex-1 max-md:w-full">
-                    <SelectValue placeholder="Tipe" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Tipe</SelectItem>
-                    <SelectItem value="perbaikan">Perbaikan</SelectItem>
-                    <SelectItem value="zoom_meeting">Zoom Meeting</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="!h-10 text-sm flex-1 max-md:w-full">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filterType === "perbaikan" ? (
-                      <>
-                        <SelectItem value="all">Semua</SelectItem>
-                        <SelectItem value="submitted">Submitted</SelectItem>
-                        <SelectItem value="assigned">Assigned</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="on_hold">On Hold</SelectItem>
-                        <SelectItem value="waiting_for_submitter">
-                          Waiting for Submitter
+            {/* Filters - 5 Columns */}
+            <div className="lg:col-span-5 flex items-center gap-3 w-full">
+                {/* Admin Penyedia - Status Filter only */}
+                {isAdminPenyedia ? (
+                  <div className="flex-1">
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                        <SelectTrigger className="h-10 px-4 text-sm border-slate-200 rounded-xl bg-slate-50 hover:bg-white transition-all font-bold text-slate-700 shadow-none">
+                            <div className="flex items-center gap-2">
+                                <Filter className="h-4 w-4 text-slate-400" />
+                                <SelectValue placeholder="Status" />
+                            </div>
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-slate-200">
+                        <SelectItem value="all">
+                            Semua Perbaikan ({statsLoading ? "..." : stats.total})
                         </SelectItem>
-                        <SelectItem value="closed">Closed</SelectItem>
-                      </>
-                    ) : filterType === "zoom_meeting" ? (
-                      <>
-                        <SelectItem value="all">Semua</SelectItem>
-                        <SelectItem value="pending_review">
-                          Pending Review
+                        <SelectItem value="submitted">
+                            Pending ({statsLoading ? "..." : stats.pending})
                         </SelectItem>
-                        <SelectItem value="approved">Approved</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
-                      </>
-                    ) : (
-                      <>
-                        <SelectItem value="all">Semua</SelectItem>
-                        <SelectItem value="submitted">Pending</SelectItem>
-                        <SelectItem value="in_progress">Diproses</SelectItem>
-                        <SelectItem value="approved">Disetujui</SelectItem>
-                        <SelectItem value="closed">Selesai</SelectItem>
-                        <SelectItem value="rejected">Ditolak</SelectItem>
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
-              </>
-            )}
+                        <SelectItem value="on_hold">
+                            On Hold ({statsLoading ? "..." : stats.in_progress})
+                        </SelectItem>
+                        <SelectItem value="closed">
+                            Closed ({statsLoading ? "..." : stats.completed})
+                        </SelectItem>
+                        </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex-1">
+                        <Select value={filterType} onValueChange={setFilterType}>
+                            <SelectTrigger className="h-10 px-4 text-sm border-slate-200 rounded-xl bg-slate-50 hover:bg-white transition-all font-bold text-slate-700 shadow-none">
+                                <div className="flex items-center gap-2">
+                                    <Filter className="h-4 w-4 text-slate-400" />
+                                    <SelectValue placeholder="Tipe" />
+                                </div>
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-slate-200">
+                                <SelectItem value="all">Semua Tipe</SelectItem>
+                                <SelectItem value="perbaikan">Perbaikan</SelectItem>
+                                <SelectItem value="zoom_meeting">Zoom Meeting</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex-1">
+                        <Select value={filterStatus} onValueChange={setFilterStatus}>
+                            <SelectTrigger className="h-10 px-4 text-sm border-slate-200 rounded-xl bg-slate-50 hover:bg-white transition-all font-bold text-slate-700 shadow-none">
+                                <div className="flex items-center gap-2">
+                                    <Layers className="h-4 w-4 text-slate-400" />
+                                    <SelectValue placeholder="Status" />
+                                </div>
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-slate-200">
+                                {filterType === "perbaikan" ? (
+                                <>
+                                    <SelectItem value="all">Semua</SelectItem>
+                                    <SelectItem value="submitted">Submitted</SelectItem>
+                                    <SelectItem value="assigned">Assigned</SelectItem>
+                                    <SelectItem value="in_progress">In Progress</SelectItem>
+                                    <SelectItem value="on_hold">On Hold</SelectItem>
+                                    <SelectItem value="waiting_for_submitter">
+                                    Waiting for Submitter
+                                    </SelectItem>
+                                    <SelectItem value="closed">Closed</SelectItem>
+                                </>
+                                ) : filterType === "zoom_meeting" ? (
+                                <>
+                                    <SelectItem value="all">Semua</SelectItem>
+                                    <SelectItem value="pending_review">
+                                    Pending Review
+                                    </SelectItem>
+                                    <SelectItem value="approved">Approved</SelectItem>
+                                    <SelectItem value="rejected">Rejected</SelectItem>
+                                </>
+                                ) : (
+                                <>
+                                    <SelectItem value="all">Semua</SelectItem>
+                                    <SelectItem value="submitted">Pending</SelectItem>
+                                    <SelectItem value="in_progress">Diproses</SelectItem>
+                                    <SelectItem value="approved">Disetujui</SelectItem>
+                                    <SelectItem value="closed">Selesai</SelectItem>
+                                    <SelectItem value="rejected">Ditolak</SelectItem>
+                                </>
+                                )}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                  </>
+                )}
 
-            {/* Buttons Group (Info & Refresh) */}
-            <div className="flex gap-3 max-md:w-full">
-              <Button
-                variant="outline"
-                onClick={() => setShowStatusInfo(true)}
-                className="h-10 w-10 p-0 flex-shrink-0 max-md:flex-1"
-                size="icon"
-                title="Informasi Status"
-              >
-                <Info className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleRefreshData}
-                disabled={loading || statsLoading}
-                className="h-10 w-10 p-0 flex-shrink-0 max-md:flex-1"
-                size="icon"
-                title="Refresh"
-              >
-                <RotateCw
-                  className={`h-4 w-4 ${loading || statsLoading ? "animate-spin" : ""
-                    }`}
-                />
-              </Button>
+                {/* Switcher & Actions */}
+                <div className="flex items-center gap-2 shrink-0">
+                    <div className="bg-slate-100/50 p-1 rounded-xl flex border border-slate-200">
+                        <Button 
+                            variant="ghost"
+                            size="sm" 
+                            onClick={() => setDisplayMode("table")}
+                            className={`h-8 px-3 rounded-lg transition-all ${displayMode === "table" ? "bg-white text-blue-600 shadow-sm font-bold" : "text-slate-400 hover:text-slate-600"}`}
+                        >
+                            <Layout className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button 
+                            variant="ghost"
+                            size="sm" 
+                            onClick={() => setDisplayMode("card")}
+                            className={`h-8 px-3 rounded-lg transition-all ${displayMode === "card" ? "bg-white text-blue-600 shadow-sm font-bold" : "text-slate-400 hover:text-slate-600"}`}
+                        >
+                            <List className="h-3.5 w-3.5" />
+                        </Button>
+                    </div>
+
+                    <Button 
+                        variant="outline" 
+                        size="icon" 
+                        onClick={handleRefreshData} 
+                        className="h-10 w-10 rounded-xl bg-slate-50 border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all hidden sm:flex"
+                    >
+                        <RotateCw className={`h-4 w-4 ${loading || statsLoading ? "animate-spin" : ""}`} />
+                    </Button>
+                    <Button 
+                        variant="outline" 
+                        size="icon" 
+                        onClick={() => setShowStatusInfo(true)}
+                        className="h-10 w-10 rounded-xl bg-slate-50 border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all hidden sm:flex"
+                    >
+                        <Info className="h-4 w-4" />
+                    </Button>
+                </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Tickets List */}
-      <Card>
-        <CardContent className="p-4">
+      {/* Tickets List Area */}
+        <div className="w-full">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <RotateCw className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -490,137 +551,213 @@ export const TicketList: React.FC<TicketListProps> = ({
               </p>
             </div>
           ) : (
-            tickets.length > 0 && (
-              <div className="space-y-3">
-                {tickets.map((ticket, index) => {
-                  const TypeIcon = getTypeIcon(ticket.type);
-
-                  return (
-                    <motion.div
-                      key={ticket.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                    >
-                      <Card
-                        className="hover:shadow-md transition-shadow cursor-pointer"
-                        onClick={() => onViewTicket(String(ticket.id))}
+            <div className="space-y-6">
+              {displayMode === "card" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {tickets.map((ticket, index) => {
+                    const TypeIcon = getTypeIcon(ticket.type);
+                    return (
+                      <motion.div
+                        key={ticket.id}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.2, delay: index * 0.05 }}
                       >
-                        <CardContent className="p-4">
-                          <div className="flex flex-col gap-4">
-                            {/* Layout utama: Icon+Text di kiri, Status di kanan (desktop) atau bawah (mobile) */}
-                            <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                        <Card 
+                          className="border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer bg-white group overflow-hidden rounded-2xl h-full"
+                          onClick={() => onViewTicket(String(ticket.id))}
+                        >
+                          <div className="p-5 flex flex-col justify-between gap-4 h-full">
+                            <div className="space-y-3">
+                              <div className="flex justify-between items-start">
+                                <div className="flex flex-col gap-1">
+                                  <Badge variant="outline" className={`${getTypeColor(ticket.type)} text-[9px] font-black px-2.5 py-0.5 rounded-lg border shadow-none w-fit`}>
+                                    <TypeIcon className="w-3 h-3 mr-1 inline-block" />
+                                    {getTypeLabel(ticket.type)}
+                                  </Badge>
+                                  <span className="text-[10px] font-bold text-slate-400 font-mono tracking-tighter">
+                                    #{(ticket as any).ticket_number || ticket.ticketNumber}
+                                  </span>
+                                </div>
+                                {getStatusBadge(ticket.status)}
+                              </div>
+                              <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">
+                                {ticket.title}
+                              </h3>
+                            </div>
 
-                              {/* Icon Wrapper */}
-                              <div className="flex-shrink-0 max-md:hidden">
-                                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                                  <TypeIcon className="h-5 w-5 text-primary" />
+                            <div className="flex items-center justify-between pt-3 border-t border-slate-50 mt-auto">
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium">
+                                  <UserIcon className="h-3 w-3" />
+                                  <span className="line-clamp-1 italic">{(ticket as any).user?.name || ticket.userName}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                                  <Calendar className="h-3 w-3" />
+                                  {formatDate((ticket as any).created_at || ticket.createdAt)}
                                 </div>
                               </div>
-
-                              {/* Content */}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-2 max-md:mb-3">
-                                  {/* Mobile Icon (ditampilkan inline di mobile) */}
-                                  <div className="hidden max-md:flex h-8 w-8 rounded bg-primary/10 items-center justify-center flex-shrink-0">
-                                    <TypeIcon className="h-4 w-4 text-primary" />
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <h3 className="font-semibold text-sm line-clamp-1">
-                                      {ticket.title}
-                                    </h3>
-                                    <p className="text-xs text-muted-foreground">
-                                      #{ticket.ticketNumber}
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-                                  <div className="flex items-center gap-1">
-                                    <UserIcon className="h-3 w-3" />
-                                    <span>{ticket.userName}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="h-3 w-3" />
-                                    <span>{formatDate(ticket.createdAt)}</span>
-                                  </div>
-                                </div>
+                              <div className="h-8 w-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                                <Eye className="h-4 w-4" />
                               </div>
-
-                              {/* Badges Section */}
-                              <div className="flex sm:flex-col max-md:items-center sm:items-end gap-2 mt-2 sm:mt-0 max-md:justify-between max-md:w-full max-md:border-t max-md:pt-3">
-                                <Badge className={`${getTypeColor(ticket.type)} max-md:text-[10px]`}>
-                                  {getTypeLabel(ticket.type)}
-                                </Badge>
-                                <div className="text-right">
-                                  {getStatusBadge(ticket.status)}
-                                </div>
-                              </div>
-
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )
-          )}
-
-          {/* Responsive Pagination */}
-          <div className="flex flex-col-reverse gap-4 md:flex-row items-center justify-between mt-6 pt-4 border-t">
-            {/* Info Text */}
-            <div className="text-sm text-muted-foreground text-center md:text-left">
-              {pagination ? (
-                <>
-                  Menampilkan <span className="font-medium text-foreground">{pagination.from}</span> - <span className="font-medium text-foreground">{pagination.to}</span> dari{" "}
-                  <span className="font-medium text-foreground">{pagination.total}</span> data
-                </>
+                        </Card>
+                      </motion.div>
+                    );
+                  })}
+                </div>
               ) : (
-                "Memuat..."
+                <>
+                  <Card className="border border-slate-100 shadow-sm overflow-hidden bg-white rounded-xl">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader className="bg-slate-50/50">
+                          <TableRow className="border-b border-slate-100 hover:bg-transparent">
+                            <TableHead className="w-[60px] font-bold text-[11px] uppercase tracking-wider text-slate-500 text-center">No</TableHead>
+                            <TableHead className="w-[140px] font-bold text-[11px] uppercase tracking-wider text-slate-500 pl-4 border-l border-slate-100/50">No. Tiket</TableHead>
+                            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-slate-500">Informasi Tiket</TableHead>
+                            <TableHead className="w-[200px] font-bold text-[11px] uppercase tracking-wider text-slate-500">Tipe & Status</TableHead>
+                            <TableHead className="w-[80px] text-right pr-6"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {tickets.map((ticket, index) => {
+                            const TypeIcon = getTypeIcon(ticket.type);
+                            const rowNumber = (pagination?.from || 1) + index;
+                            return (
+                              <TableRow 
+                                key={ticket.id} 
+                                className="group border-b border-slate-50 cursor-pointer hover:bg-blue-50/30 transition-colors"
+                                onClick={() => onViewTicket(String(ticket.id))}
+                              >
+                                <TableCell className="text-center font-medium text-slate-400 text-xs border-r border-slate-50">
+                                  {rowNumber}
+                                </TableCell>
+                                <TableCell className="pl-4 font-mono text-[10px] font-bold text-slate-500 tracking-tighter">
+                                  {(ticket as any).ticket_number || ticket.ticketNumber}
+                                </TableCell>
+                                <TableCell>
+                                  <p className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">{ticket.title}</p>
+                                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[10px] text-slate-500">
+                                    <div className="flex items-center gap-1">
+                                      <UserIcon className="h-3 w-3 text-slate-400" />
+                                      <span>{(ticket as any).user?.name || ticket.userName}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Calendar className="h-3 w-3 text-slate-400" />
+                                      <span>{formatDate((ticket as any).created_at || ticket.createdAt)}</span>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex flex-col items-start gap-1.5">
+                                    <Badge variant="outline" className={`${getTypeColor(ticket.type)} text-[9px] font-black px-2 py-0 rounded-lg shadow-none`}>
+                                      <TypeIcon className="w-3 h-3 mr-1 inline-block" />
+                                      {getTypeLabel(ticket.type)}
+                                    </Badge>
+                                    {getStatusBadge(ticket.status)}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right pr-6">
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8 text-blue-600 border-blue-200 hover:bg-blue-600 hover:text-white transition-all rounded-lg shadow-sm"
+                                    onClick={(e) => { e.stopPropagation(); onViewTicket(String(ticket.id)); }}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {pagination && (
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 bg-slate-50/50 border-t border-slate-100 rounded-b-xl">
+                        <div className="flex flex-col gap-0.5">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Data Stats</p>
+                          <p className="text-xs font-bold text-slate-600">
+                            Menampilkan {pagination.from}-{pagination.to} dari {pagination.total} data
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="sm" onClick={handlePrevPage} disabled={pagination.current_page === 1} className="h-8 px-3 rounded-lg border-slate-200 font-bold text-[10px] uppercase bg-white">
+                            Sebelumnya
+                          </Button>
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: pagination.last_page }).map((_, i) => (
+                              (i + 1 === 1 || i + 1 === pagination.last_page || (i + 1 >= pagination.current_page - 1 && i + 1 <= pagination.current_page + 1)) ? (
+                                <Button
+                                  key={i}
+                                  variant={pagination.current_page === i + 1 ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => loadTickets(i + 1)}
+                                  className={`h-8 w-8 rounded-lg text-xs font-bold transition-all ${pagination.current_page === i + 1 ? 'bg-blue-600 shadow-md' : 'bg-white border-slate-200'}`}
+                                >
+                                  {i + 1}
+                                </Button>
+                              ) : (i + 1 === 2 || i + 1 === pagination.last_page - 1) ? <span key={i} className="text-slate-300">...</span> : null
+                            ))}
+                          </div>
+                          <Button variant="outline" size="sm" onClick={handleNextPage} disabled={!pagination.has_more} className="h-8 px-3 rounded-lg border-slate-200 font-bold text-[10px] uppercase bg-white">
+                            Berikutnya
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                </>
               )}
             </div>
+          )}
+        </div>
 
-            {/* Controls */}
-            <div className="flex items-center gap-2 w-full md:w-auto justify-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrevPage}
-                disabled={!pagination || pagination.current_page <= 1 || loading}
-                className="cursor-pointer max-md:px-2"
-              >
-                <ChevronLeft className="h-4 w-4 md:mr-1" />
-                {/* Text disembunyikan di max-md */}
-                <span className="hidden md:inline">Sebelumnya</span>
-              </Button>
-
-              <div className="text-sm font-medium px-2 min-w-[80px] text-center">
-                Hal. {pagination?.current_page || 1} / {pagination?.last_page || 1}
+        {/* Unified Pagination for Cards */}
+        {displayMode === "card" && tickets.length > 0 && pagination && (
+          <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white rounded-xl mt-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 bg-slate-50/50">
+              <div className="flex flex-col gap-0.5">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Data Stats</p>
+                <p className="text-xs font-bold text-slate-600">
+                  Menampilkan {pagination.from}-{pagination.to} dari {pagination.total} kartu
+                </p>
               </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleNextPage}
-                disabled={!pagination || !pagination.has_more || loading}
-                className="cursor-pointer max-md:px-2"
-              >
-                {/* Text disembunyikan di max-md */}
-                <span className="hidden md:inline">Selanjutnya</span>
-                <ChevronRight className="h-4 w-4 md:ml-1" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handlePrevPage} disabled={pagination.current_page === 1} className="h-8 px-3 rounded-lg border-slate-200 font-bold text-[10px] uppercase bg-white">
+                  Sebelumnya
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: pagination.last_page }).map((_, i) => (
+                    (i + 1 === 1 || i + 1 === pagination.last_page || (i + 1 >= pagination.current_page - 1 && i + 1 <= pagination.current_page + 1)) ? (
+                      <Button
+                        key={i}
+                        variant={pagination.current_page === i + 1 ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => loadTickets(i + 1)}
+                        className={`h-8 w-8 rounded-lg text-xs font-bold transition-all ${pagination.current_page === i + 1 ? 'bg-blue-600 shadow-md' : 'bg-white border-slate-200'}`}
+                      >
+                        {i + 1}
+                      </Button>
+                    ) : (i + 1 === 2 || i + 1 === pagination.last_page - 1) ? <span key={i} className="text-slate-300">...</span> : null
+                  ))}
+                </div>
+                <Button variant="outline" size="sm" onClick={handleNextPage} disabled={!pagination.has_more} className="h-8 px-3 rounded-lg border-slate-200 font-bold text-[10px] uppercase bg-white">
+                  Berikutnya
+                </Button>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </Card>
+        )}
 
-      {/* Status Info Dialog */}
-      <StatusInfoDialog
-        open={showStatusInfo}
-        onOpenChange={setShowStatusInfo}
-      />
-    </div>
-  );
-};
+        {/* Status Info Dialog */}
+        <StatusInfoDialog
+          open={showStatusInfo}
+          onOpenChange={setShowStatusInfo}
+        />
+      </div>
+    );
+  };

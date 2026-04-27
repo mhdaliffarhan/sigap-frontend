@@ -16,6 +16,7 @@ import { ZoomBooking, ZoomManagementView } from "@/components/views/zoom";
 import { UserManagement, ReportsView } from "@/components/views/admin";
 import RoleManagement from "@/components/views/admin/role-management";
 import ServiceCategoryManagement from "@/components/views/admin/service-category-management";
+import ServiceCategoryDetail from "@/components/views/admin/service-category-detail";
 import ServiceCatalog from "@/components/views/services/service-catalog";
 import CreateServiceTicket from "@/components/views/services/create-service-ticket";
 import { CreateTicketWrapper } from "@/components/views/tickets/create-ticket-wrapper";
@@ -51,6 +52,7 @@ export type ViewType =
   | "users"
   | "roles"
   | "service-categories"
+  | "service-category-detail"
   | "bmn-assets"
   | "work-orders"
   | "reports"
@@ -102,7 +104,16 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     return null;
   };
 
+  const parseServiceCategoryId = (): string | null => {
+    const pathParts = location.pathname.split("/").filter(Boolean);
+    if (pathParts.length >= 3 && pathParts[1] === "service-categories") {
+      return pathParts[2];
+    }
+    return null;
+  };
+
   const selectedTicketId = parseTicketId();
+  const selectedCategoryId = parseServiceCategoryId();
 
   // Validate role from URL matches user's role
   useEffect(() => {
@@ -128,6 +139,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       const menu = pathParts[1];
       if (menu.startsWith("ticket-detail")) return "ticket-detail";
       if (menu === "services" && pathParts.length > 2) return "service-detail";
+      if (menu === "service-categories" && pathParts.length > 2) return "service-category-detail";
       return menu as ViewType;
     }
     return "dashboard" as ViewType;
@@ -181,7 +193,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         "work-orders": "/:role/work-orders",
         users: "/:role/users",
         roles: "/:role/roles", 
-        "service-categories": "/:role/service-categories", // <--- INI PERBAIKANNYA
+        "service-categories": "/:role/service-categories",
+        "service-category-detail": "/:role/service-categories",
         "bmn-assets": "/:role/bmn-assets",
         reports: "/:role/reports",
         profile: "/:role/profile",
@@ -191,7 +204,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       };
       
       const pattern = routeMap[view];
-      // Safety check jika view tidak ada di map
       if (!pattern) {
         console.error(`Route mapping not found for view: ${view}`);
         return;
@@ -200,6 +212,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       const path = buildRoute(pattern, roleParam);
       navigate(path);
     }
+  };
+
+  const handleViewCategoryDetail = (categoryId: string) => {
+    navigate(`/${roleParam}/service-categories/${categoryId}`);
+  };
+
+  const handleBackToCategories = () => {
+    navigate(`/${roleParam}/service-categories`);
   };
 
   const handleRoleSwitch = () => {
@@ -352,7 +372,18 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           handleNavigate("dashboard");
           return null;
         }
-        return <ServiceCategoryManagement />
+        return <ServiceCategoryManagement onViewDetail={handleViewCategoryDetail} />
+
+      case "service-category-detail":
+        if (activeRole !== "admin_layanan" && activeRole !== "super_admin"){
+          handleNavigate("dashboard");
+          return null;
+        }
+        if (!selectedCategoryId) {
+          handleNavigate("service-categories");
+          return null;
+        }
+        return <ServiceCategoryDetail categoryId={selectedCategoryId} onBack={handleBackToCategories} />
 
       case "bmn-assets":
         if (activeRole !== "super_admin") {
@@ -433,7 +464,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
         {sidebarCollapsed && <div className="w-[72px] flex-shrink-0 max-md:hidden" />}
 
-        <main className="flex-1 overflow-y-scroll [scrollbar-gutter:stable] bg-white/40 backdrop-blur-md rounded-tl-[2.5rem] max-md:rounded-tr-[2.5rem] max-md:shadow-[0_-8px_30px_rgba(0,0,0,0.12)] border-t border-l border-white/40 shadow-inner">
+        <main className="flex-1 overflow-y-scroll [scrollbar-gutter:stable] bg-white/40 backdrop-blur-md max-md:shadow-[0_-8px_30px_rgba(0,0,0,0.12)] border-t border-l border-white/40 shadow-inner">
           <div className="p-8">{renderContent()}</div>
         </main>
       </div>

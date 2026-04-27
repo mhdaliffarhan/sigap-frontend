@@ -112,7 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           
           // Mobile Override Styles (max-md)
           max-md:fixed max-md:top-0 max-md:bottom-0 max-md:left-0 max-md:z-[100] max-md:h-screen
-          max-md:shadow-2xl max-md:will-change-transform
+          max-md:shadow-2xl max-md:will-change-transform max-md:bg-white max-md:border-r max-md:border-slate-200
         `}
         onMouseEnter={() => !isMobile && collapsed && setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -120,7 +120,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           boxShadow: !isMobile && collapsed && isHovered ? "4px 0 12px rgba(0,0,0,0.08)" : undefined
         }}
       >
-{/* Mobile Close Button */}
+        {/* Mobile Close Button */}
         {isMobile && (
           <div className="flex justify-between items-center p-4 h-[72px] bg-blue-50 md:hidden border-b border-gray-100">
             <span className="font-bold text-xl">SIGAP-TI</span>
@@ -251,11 +251,11 @@ const SidebarMenuItem: React.FC<SidebarMenuItemProps> = ({
         />
       </div>
 
-      {/* Pill background - 3D button effect with uniform light from all sides */}
+      {/* Box background - 3D button effect with uniform light from all sides */}
       <div
         className={`
-          rounded-full cursor-pointer overflow-hidden
-          ${showExpanded ? "w-full h-full" : "w-12 h-8"}
+          rounded-lg cursor-pointer overflow-hidden
+          ${showExpanded ? "w-full h-full" : "w-12 h-10"}
           max-md:w-full max-md:h-full max-md:rounded-lg
           ${isMobile && !collapsed ? 'transition-none' : 'transition-all duration-200 ease-out'}
         `}
@@ -303,11 +303,11 @@ const getMenuItemsForRole = (role: UserRole): MenuItem[] => {
     },
     {
       id: "create-ticket" as ViewType,
-      label: "Pengajuan Baru",
+      label: "Buat Tiket",
       icon: PlusCircle,
       roles: ["pegawai"],
     },
-    
+
     {
       id: "services" as ViewType,
       label: "Daftar Layanan",
@@ -334,30 +334,10 @@ const getMenuItemsForRole = (role: UserRole): MenuItem[] => {
     },
     {
       id: "work-orders" as ViewType,
-      label: "Work Order",
+      label: "Daftar Pekerjaan",
       icon: FolderKanban,
       roles: ["admin_penyedia", "teknisi"],
     },
-    {
-      id: "users" as ViewType,
-      label: "User Management",
-      icon: Users,
-      roles: ["super_admin"],
-    },
-    // --- INTEGRASI MANAJEMEN ROLE DI SINI ---
-    {
-      id: "roles" as ViewType, // Pastikan ini sesuai dengan path route Anda
-      label: "Manajemen Role",
-      icon: Shield,
-      roles: ["super_admin"], // Hanya Super Admin yang boleh akses
-    },
-    {
-      id: "service-categories" as ViewType,
-      label: "Manajemen Katalog",
-      icon: Layers, 
-      roles: ["super_admin", "admin_layanan"],
-    },
-    // ----------------------------------------
     {
       id: "bmn-assets" as ViewType,
       label: "Asset BMN",
@@ -370,6 +350,26 @@ const getMenuItemsForRole = (role: UserRole): MenuItem[] => {
       icon: BarChart3,
       roles: ["super_admin", "admin_penyedia"],
     },
+    {
+      id: "service-categories" as ViewType,
+      label: "Katalog Layanan",
+      icon: Layers,
+      roles: ["super_admin", "admin_layanan"],
+    },
+    {
+      id: "users" as ViewType,
+      label: "Manajemen User",
+      icon: Users,
+      roles: ["super_admin"],
+    },
+    // --- INTEGRASI MANAJEMEN ROLE DI SINI ---
+    {
+      id: "roles" as ViewType, // Pastikan ini sesuai dengan path route Anda
+      label: "Manajemen Role",
+      icon: Shield,
+      roles: ["super_admin"], // Hanya Super Admin yang boleh akses
+    },
+    // ----------------------------------------
   ];
 
   // Filter menu items based on user role

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  ArrowLeft,
+  ChevronRight,
   CheckCircle,
   MessageSquare,
   Paperclip,
@@ -23,7 +23,6 @@ import {
   Truck,
   FileText,
   Loader2,
-  User as UserIcon,
   MapPin,
   Barcode,
   Clock
@@ -63,47 +62,55 @@ export const TicketDetailHeader: React.FC<TicketDetailHeaderProps> = ({
   onBack,
   onShowCompleteDialog,
 }) => {
-  // Ambil nomor tiket dengan aman (backend kirim ticket_number)
   const ticketNumber = getTicketProp(ticket, 'ticket_number', 'ticketNumber');
 
+  const statusStyle = (() => {
+    const s = ticket.status;
+    if (['closed', 'selesai', 'approved', 'resolved', 'completed'].includes(s))
+      return 'bg-green-50 text-green-700 border-green-200';
+    if (['rejected', 'cancelled', 'closed_unrepairable'].includes(s))
+      return 'bg-red-50 text-red-700 border-red-200';
+    if (['in_progress', 'assigned'].includes(s))
+      return 'bg-blue-50 text-blue-700 border-blue-200';
+    if (['on_hold'].includes(s))
+      return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+    if (['waiting_for_submitter'].includes(s))
+      return 'bg-orange-50 text-orange-700 border-orange-200';
+    return 'bg-slate-50 text-slate-600 border-slate-200';
+  })();
+
   return (
-    <div className="flex items-center justify-between mb-6">
-      <div className="flex items-center gap-4">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={onBack}
-          className="rounded-full h-10 w-10"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">{ticket.title}</h1>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge variant="outline" className="font-mono text-xs">
-              #{ticketNumber || ticket.id}
-            </Badge>
-            <Badge
-              variant={
-                ["closed", "selesai", "approved", "resolved", "completed"].includes(ticket.status)
-                  ? "default"
-                  : ["rejected", "cancelled", "closed_unrepairable"].includes(ticket.status)
-                    ? "destructive"
-                    : "secondary"
-              }
-              className="capitalize"
-            >
-              {ticket.status.replace(/_/g, " ")}
-            </Badge>
-          </div>
+    <div className="flex flex-wrap items-start justify-between gap-4 max-md:flex-col">
+      <div>
+        {/* Breadcrumbs */}
+        <nav className="flex items-center gap-1.5 text-sm mb-2">
+          <button onClick={onBack} className="text-blue-600 hover:text-blue-700 hover:underline font-medium transition-colors">
+            Kelola Tiket
+          </button>
+          <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+          <span className="text-slate-500 font-medium truncate max-w-[250px]">
+            #{ticketNumber || ticket.id}
+          </span>
+        </nav>
+        <h1 className="text-3xl font-bold">{ticket.title}</h1>
+        <div className="flex items-center gap-2 mt-1.5">
+          <Badge variant="outline" className="font-mono text-[10px] uppercase border-slate-200 bg-slate-50">
+            #{ticketNumber || ticket.id}
+          </Badge>
+          <Badge
+            variant="outline"
+            className={`capitalize text-[10px] ${statusStyle}`}
+          >
+            {ticket.status.replace(/_/g, " ")}
+          </Badge>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 max-md:w-full">
         {canComplete && (
           <Button
             onClick={onShowCompleteDialog}
-            className="bg-green-600 hover:bg-green-700 shadow-sm"
+            className="bg-green-600 hover:bg-green-700 shadow-sm max-md:flex-1"
           >
             <CheckCircle className="h-4 w-4 mr-2" />
             Konfirmasi Selesai
@@ -128,12 +135,13 @@ interface TicketDetailInfoProps {
   commentsLoading: boolean;
   hasMore: boolean;
   onLoadMoreComments: () => void;
+  dynamicInfo?: React.ReactNode; 
+  onShowFeedback?: () => void;
+  isOwner?: boolean;
 }
 
 export const TicketDetailInfo: React.FC<TicketDetailInfoProps> = ({
   ticket,
-  ticketOwner: propTicketOwner,
-  assignedUser: propAssignedUser,
   comment,
   onCommentChange,
   onAddComment,
@@ -143,6 +151,9 @@ export const TicketDetailInfo: React.FC<TicketDetailInfoProps> = ({
   commentsLoading,
   hasMore,
   onLoadMoreComments,
+  dynamicInfo,
+  onShowFeedback,
+  isOwner,
 }) => {
   const [assetData, setAssetData] = useState<any>(null);
   const [loadingAsset, setLoadingAsset] = useState(false);
@@ -152,10 +163,7 @@ export const TicketDetailInfo: React.FC<TicketDetailInfoProps> = ({
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // PRIORITASKAN DATA DARI OBJEK TICKET (Backend Relations)
-  // Backend mengirim 'user' (pelapor) dan 'assigned_user' (PJ) di dalam resource ticket
-  const activeTicketOwner = (ticket as any).user || propTicketOwner;
-  const activeAssignedUser = (ticket as any).assigned_user || propAssignedUser;
+
 
   // Auto scroll chat
   useEffect(() => {
@@ -239,11 +247,131 @@ export const TicketDetailInfo: React.FC<TicketDetailInfoProps> = ({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-      {/* KOLOM KIRI: DISKUSI & TIMELINE (2/3 Lebar) */}
-      <div className="lg:col-span-2 space-y-6 order-2 lg:order-1">
+      {/* KOLOM KIRI: METADATA & INFO (1/3 Lebar) */}
+      <div className="space-y-6 order-1">
+        
+        {/* Dynamic Ticket Info (Informasi Umum, Atribut) */}
+        {dynamicInfo}
+
+        {/* CARD 2: INFORMASI ASET (Khusus Perbaikan) */}
+        {ticket.type === "perbaikan" && (
+          <Card className="rounded-xl border-slate-200">
+            <CardHeader className="pb-3 border-b bg-slate-50/30">
+              <CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Aset Terkait
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4">
+              {loadingAsset ? (
+                <div className="text-center py-4 text-xs text-slate-400">Memuat data aset...</div>
+              ) : (
+                <>
+                  <div className="flex items-start gap-3">
+                    <Package className="h-4 w-4 text-slate-400 mt-0.5" />
+                    <div>
+                      <p className="text-xs text-slate-500">Nama Barang</p>
+                      <p className="text-sm font-medium text-slate-800">
+                        {assetData?.asset_name || (ticket as any).assetName || (ticket as any).nama_barang || "-"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-start gap-3">
+                      <Barcode className="h-4 w-4 text-slate-400 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-slate-500">Kode / NUP</p>
+                        <p className="text-xs font-mono bg-slate-100 px-1 rounded inline-block mt-0.5">
+                          {(ticket as any).kode_barang || (ticket as any).assetCode} / {(ticket as any).nup || (ticket as any).assetNUP}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-slate-500">Lokasi</p>
+                        <p className="text-xs font-medium">
+                          {(ticket as any).asset_location || (ticket as any).assetLocation || assetData?.lokasi || "-"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {(ticket as any).diagnosis && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-2 text-xs"
+                      onClick={handleOpenDiagnosisModal}
+                    >
+                      <FileText className="h-3 w-3 mr-2" /> Lihat Diagnosis
+                    </Button>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* CARD 3: ATTACHMENTS (Jika Ada) */}
+        {attachmentList.length > 0 && (
+          <Card className="rounded-xl border-slate-200">
+            <CardContent className="py-6 space-y-4">
+              <div>
+                <p className="text-xs text-slate-500 font-semibold uppercase mb-2">Lampiran</p>
+                <div className="space-y-2">
+                    {attachmentList.map((att: any, idx: number) => (
+                      <a
+                        key={idx}
+                        href={att.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-2 p-2 bg-slate-50 border rounded-md hover:bg-blue-50 hover:border-blue-200 transition-colors group"
+                      >
+                        <Paperclip className="h-3 w-3 text-slate-400 group-hover:text-blue-500" />
+                        <span className="text-xs text-slate-600 truncate group-hover:text-blue-700">
+                          {att.name || `Lampiran ${idx + 1}`}
+                        </span>
+                      </a>
+                    ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* KOLOM KANAN: DISKUSI & TIMELINE (2/3 Lebar) */}
+      <div className="lg:col-span-2 space-y-6 order-2">
 
         {/* DISKUSI CARD */}
-        <Card className="flex flex-col h-[600px] shadow-sm border-slate-200">
+        
+        {/* PROMPT FEEDBACK (If completed and no feedback AND is owner) */}
+        {['closed', 'selesai', 'completed'].includes(ticket.status) && !ticket.feedback && onShowFeedback && isOwner && (
+          <Card className="border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl overflow-hidden shadow-sm animate-in zoom-in-95 duration-300">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4 text-center md:text-left">
+                  <div className="p-3 bg-white rounded-2xl shadow-sm text-amber-500 scale-110">
+                    <CheckCircle className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-amber-900 text-lg">Tiket Telah Selesai!</h3>
+                    <p className="text-sm text-amber-700/80 font-medium">Bantu kami meningkatkan layanan dengan memberikan rating Anda.</p>
+                  </div>
+                </div>
+                <Button 
+                  onClick={onShowFeedback}
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 py-5 rounded-xl shadow-lg shadow-amber-200 transition-all hover:translate-y-[-2px] active:translate-y-0"
+                >
+                  Beri Feedback & Rating
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        <Card className="flex flex-col h-[600px] shadow-sm border-slate-200 rounded-xl">
           <CardHeader className="pb-3 border-b bg-slate-50/50">
             <CardTitle className="text-base flex items-center gap-2 text-slate-800">
               <MessageSquare className="h-4 w-4 text-blue-500" /> Diskusi & Aktivitas
@@ -342,7 +470,7 @@ export const TicketDetailInfo: React.FC<TicketDetailInfoProps> = ({
 
         {/* WORK ORDERS (Legacy) */}
         {ticket.type === "perbaikan" && getWorkOrdersByTicket(ticket.id).length > 0 && (
-          <Card>
+          <Card className="rounded-xl border-slate-200">
             <CardHeader className="pb-3 border-b">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <FolderKanban className="h-4 w-4" /> Work Orders
@@ -370,168 +498,6 @@ export const TicketDetailInfo: React.FC<TicketDetailInfoProps> = ({
             </CardContent>
           </Card>
         )}
-      </div>
-
-      {/* KOLOM KANAN: METADATA (1/3 Lebar) */}
-      <div className="space-y-6 order-1 lg:order-2">
-
-        {/* CARD 1: PELAPOR & PJ */}
-        <Card>
-          <CardHeader className="pb-3 border-b bg-slate-50/30">
-            <CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Orang Terkait
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0 mb-6">
-            {/* Pelapor */}
-            <div className="p-4 flex items-center gap-3 border-b border-dashed">
-              <Avatar className="h-9 w-9 border">
-                <AvatarFallback>{getInitials(activeTicketOwner?.name || "?")}</AvatarFallback>
-              </Avatar>
-              <div className="overflow-hidden">
-                <p className="text-xs text-slate-500 mb-0.5">Pelapor</p>
-                <p className="text-sm font-bold text-slate-900 truncate">
-                  {activeTicketOwner?.name || "Tidak diketahui"}
-                </p>
-                <p className="text-xs text-slate-500 truncate">
-                  {activeTicketOwner?.unit_kerja || activeTicketOwner?.unitKerja || activeTicketOwner?.jabatan || "Pegawai"}
-                </p>
-              </div>
-            </div>
-
-            {/* PJ */}
-            <div className="p-4 flex items-center gap-3">
-              {activeAssignedUser ? (
-                <>
-                  <Avatar className="h-9 w-9 border bg-blue-50 text-blue-600">
-                    <AvatarFallback>{getInitials(activeAssignedUser.name)}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="text-xs text-slate-500 mb-0.5">Penanggung Jawab</p>
-                    <p className="text-sm font-bold text-slate-900">{activeAssignedUser.name}</p>
-                    <span className="text-[10px] text-blue-600 font-medium bg-blue-50 px-1.5 py-0.5 rounded mt-1 inline-block">
-                      {activeAssignedUser.role?.replace('_', ' ').toUpperCase()}
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <div className="flex items-center gap-3 w-full opacity-60">
-                  <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center border border-dashed">
-                    <UserIcon className="h-4 w-4 text-slate-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Penanggung Jawab</p>
-                    <p className="text-sm italic text-slate-400">
-                      {ticket.status === 'resolved' || ticket.status === 'completed'
-                        ? "Selesai (Arsip)"
-                        : (ticket as any).current_assignee_role
-                          ? `Menunggu ${(ticket as any).current_assignee_role.replace('_', ' ')}`
-                          : "Belum ditugaskan"}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* CARD 2: INFORMASI ASET (Khusus Perbaikan) */}
-        {ticket.type === "perbaikan" && (
-          <Card>
-            <CardHeader className="pb-3 border-b bg-slate-50/30">
-              <CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                Aset Terkait
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              {loadingAsset ? (
-                <div className="text-center py-4 text-xs text-slate-400">Memuat data aset...</div>
-              ) : (
-                <>
-                  <div className="flex items-start gap-3">
-                    <Package className="h-4 w-4 text-slate-400 mt-0.5" />
-                    <div>
-                      <p className="text-xs text-slate-500">Nama Barang</p>
-                      <p className="text-sm font-medium text-slate-800">
-                        {assetData?.asset_name || (ticket as any).assetName || (ticket as any).nama_barang || "-"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-start gap-3">
-                      <Barcode className="h-4 w-4 text-slate-400 mt-0.5" />
-                      <div>
-                        <p className="text-xs text-slate-500">Kode / NUP</p>
-                        <p className="text-xs font-mono bg-slate-100 px-1 rounded inline-block mt-0.5">
-                          {(ticket as any).kode_barang || (ticket as any).assetCode} / {(ticket as any).nup || (ticket as any).assetNUP}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />
-                      <div>
-                        <p className="text-xs text-slate-500">Lokasi</p>
-                        <p className="text-xs font-medium">
-                          {(ticket as any).asset_location || (ticket as any).assetLocation || assetData?.lokasi || "-"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {(ticket as any).diagnosis && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full mt-2 text-xs"
-                      onClick={handleOpenDiagnosisModal}
-                    >
-                      <FileText className="h-3 w-3 mr-2" /> Lihat Diagnosis
-                    </Button>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* CARD 3: META INFO & ATTACHMENTS */}
-        <Card>
-          <CardContent className="py-6 space-y-4">
-            <div>
-              <p className="text-xs text-slate-500 font-semibold uppercase mb-1">Deskripsi Masalah</p>
-              <p className="text-sm text-slate-700 leading-relaxed">
-                {ticket.description}
-              </p>
-            </div>
-
-            {attachmentList.length > 0 && (
-              <>
-                <Separator />
-                <div>
-                  <p className="text-xs text-slate-500 font-semibold uppercase mb-2">Lampiran</p>
-                  <div className="space-y-2">
-                    {attachmentList.map((att: any, idx: number) => (
-                      <a
-                        key={idx}
-                        href={att.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-2 p-2 bg-slate-50 border rounded-md hover:bg-blue-50 hover:border-blue-200 transition-colors group"
-                      >
-                        <Paperclip className="h-3 w-3 text-slate-400 group-hover:text-blue-500" />
-                        <span className="text-xs text-slate-600 truncate group-hover:text-blue-700">
-                          {att.name || `Lampiran ${idx + 1}`}
-                        </span>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
       </div>
 
       {/* MODALS */}

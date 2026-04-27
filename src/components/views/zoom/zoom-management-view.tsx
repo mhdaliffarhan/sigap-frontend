@@ -43,11 +43,11 @@ export const ZoomManagementView: React.FC<ZoomManagementViewProps> = ({ onNaviga
 
     {/* Tabs for Booking and Account Management */}
     <Tabs defaultValue="booking" className="w-full"> 
-      <TabsList className="w-full max-md:!rounded-md bg-blue-100 text-slate-500 border border-black-400 p-1 shadow-sm h-auto md:grid md:grid-cols-3 max-md:flex max-md:flex-col max-md:space-y-2">
+      <TabsList className="w-full bg-slate-100 text-slate-500 p-1 shadow-sm h-auto md:grid md:grid-cols-3 max-md:flex max-md:flex-col gap-1 max-md:gap-2">
         
         <TabsTrigger
           value="booking"
-          className="flex items-center justify-center gap-2 py-3 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm rounded-full max-md:rounded-lg max-md:w-full max-md:justify-start max-md:px-4"
+          className="flex items-center justify-center gap-2 py-2.5 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm rounded-md transition-all max-md:w-full max-md:justify-start max-md:px-4"
         >
           <Calendar className="h-4 w-4 flex-shrink-0" />
           Kelola Zoom Booking
@@ -55,7 +55,7 @@ export const ZoomManagementView: React.FC<ZoomManagementViewProps> = ({ onNaviga
 
         <TabsTrigger
           value="tickets"
-          className="flex items-center justify-center gap-2 py-3 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm rounded-full max-md:rounded-lg max-md:w-full max-md:justify-start max-md:px-4"
+          className="flex items-center justify-center gap-2 py-2.5 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm rounded-md transition-all max-md:w-full max-md:justify-start max-md:px-4"
         >
           <List className="h-4 w-4 flex-shrink-0" />
           Daftar Tiket Booking
@@ -63,7 +63,7 @@ export const ZoomManagementView: React.FC<ZoomManagementViewProps> = ({ onNaviga
 
         <TabsTrigger
           value="accounts"
-          className="flex items-center justify-center gap-2 py-3 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm rounded-full max-md:rounded-lg max-md:w-full max-md:justify-start max-md:px-4"
+          className="flex items-center justify-center gap-2 py-2.5 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm rounded-md transition-all max-md:w-full max-md:justify-start max-md:px-4"
         >
           <Settings className="h-4 w-4 flex-shrink-0" />
           Manajemen Akun

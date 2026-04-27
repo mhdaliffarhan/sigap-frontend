@@ -26,10 +26,21 @@ export interface UsersByRole {
   value: number;
 }
 
+export interface AuditLog {
+  id: number;
+  user_id: number;
+  user_name: string;
+  action: string;
+  details: string;
+  ip_address: string;
+  created_at: string;
+}
+
 interface UseSuperAdminDashboardReturn {
   stats: DashboardStats | null;
   ticketsByType: TicketsByType[];
   usersByRole: UsersByRole[];
+  recentActivities: AuditLog[];
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -54,6 +65,7 @@ export function useSuperAdminDashboard(): UseSuperAdminDashboardReturn {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [ticketsByType, setTicketsByType] = useState<TicketsByType[]>([]);
   const [usersByRole, setUsersByRole] = useState<UsersByRole[]>([]);
+  const [recentActivities, setRecentActivities] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,21 +74,25 @@ export function useSuperAdminDashboard(): UseSuperAdminDashboardReturn {
       setLoading(true);
       setError(null);
 
-      const response: any = await api.get('/tickets/stats/super-admin-dashboard');
+      const [statsResponse, logsResponse]: any[] = await Promise.all([
+        api.get('/tickets/stats/super-admin-dashboard'),
+        api.get('/audit-logs?per_page=10')
+      ]);
 
-      if (response) {
-        // Response from Laravel API returns data directly (not wrapped in .data)
-        // Structure: { stats: {...}, ticketsByType: [...], usersByRole: [...] }
-        if (response.stats) {
-          setStats(response.stats);
-          setTicketsByType(response.ticketsByType || []);
-          setUsersByRole(response.usersByRole || []);
-        } else if (response.data && response.data.stats) {
-          // Fallback if wrapped in .data property
-          setStats(response.data.stats);
-          setTicketsByType(response.data.ticketsByType || []);
-          setUsersByRole(response.data.usersByRole || []);
+      if (statsResponse) {
+        if (statsResponse.stats) {
+          setStats(statsResponse.stats);
+          setTicketsByType(statsResponse.ticketsByType || []);
+          setUsersByRole(statsResponse.usersByRole || []);
+        } else if (statsResponse.data && statsResponse.data.stats) {
+          setStats(statsResponse.data.stats);
+          setTicketsByType(statsResponse.data.ticketsByType || []);
+          setUsersByRole(statsResponse.data.usersByRole || []);
         }
+      }
+
+      if (logsResponse && logsResponse.data) {
+        setRecentActivities(logsResponse.data || []);
       }
     } catch (err: any) {
       console.error('Error fetching dashboard stats:', err);
@@ -95,6 +111,7 @@ export function useSuperAdminDashboard(): UseSuperAdminDashboardReturn {
     stats: stats || defaultStats,
     ticketsByType,
     usersByRole,
+    recentActivities,
     loading,
     error,
     refetch: fetchDashboardData,

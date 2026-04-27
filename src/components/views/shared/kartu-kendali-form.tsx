@@ -219,7 +219,7 @@ export const KartuKendaliForm: React.FC<KartuKendaliFormProps> = ({
               <Button
                 type="submit"
                 disabled={isSubmitting || loadingAsset || !assetData}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-blue-600 hover:bg-blue-700 text-white max-md:w-full"
               >
                 {isSubmitting ? "Menyimpan..." : "Simpan Kartu Kendali"}
               </Button>

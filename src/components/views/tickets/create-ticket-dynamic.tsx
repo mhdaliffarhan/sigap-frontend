@@ -4,7 +4,7 @@ import { api, resourceApi, availabilityApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -18,11 +18,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
-import { 
-  ArrowLeft, Send, Loader2, Info, 
-  Calendar as CalendarIcon, 
-  AlertCircle, AlertTriangle, Sparkles,
-  BookText, Wrench
+import {
+  Send, Loader2, Info,
+  Calendar as CalendarIcon,
+  AlertTriangle, Layers,
+  ChevronRight,
+  Sparkles,
+  MapPin,
+  Clock,
+  X
 } from 'lucide-react';
 import { DynamicFormRenderer } from '@/components/dynamic-engine/form-renderer';
 import { Badge } from '@/components/ui/badge';
@@ -30,46 +34,63 @@ import { ResourceCalendar } from './resource-calendar';
 import { format, areIntervalsOverlapping } from 'date-fns';
 
 interface CreateTicketDynamicProps {
-  currentUser: any;
-  service: any; 
+  service: any;
+  allServices: any[];
+  onServiceChange: (serviceId: string) => void;
   onBack: () => void;
   onSuccess: () => void;
 }
 
-export const CreateTicketDynamic: React.FC<CreateTicketDynamicProps> = ({ 
-  currentUser, 
-  service, 
-  onBack, 
-  onSuccess 
+export const CreateTicketDynamic: React.FC<CreateTicketDynamicProps> = ({
+  service,
+  allServices,
+  onServiceChange,
+  onBack,
+  onSuccess
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [resources, setResources] = useState<any[]>([]); 
+  const [resources, setResources] = useState<any[]>([]);
   const [loadingResources, setLoadingResources] = useState(false);
-  
+
   const [conflictDialog, setConflictDialog] = useState<{
     open: boolean;
     data: any | null;
     conflictInfo: any | null;
   }>({ open: false, data: null, conflictInfo: null });
 
-  const isBooking = service.type === 'booking';
+  const isBooking = service?.type === 'booking';
 
   const form = useForm({
     defaultValues: {
-      title: `Pengajuan: ${service.name}`,
+      title: `Pengajuan: ${service?.name || ''}`,
       description: '',
       priority: 'medium',
       resource_id: '',
       start_date: '',
       end_date: '',
-      ticket_data: {} 
+      ticket_data: {}
     }
   });
+
+  // Reset form when service changes
+  useEffect(() => {
+    if (service) {
+      form.reset({
+        title: `Pengajuan: ${service.name}`,
+        description: '',
+        priority: 'medium',
+        resource_id: '',
+        start_date: '',
+        end_date: '',
+        ticket_data: {}
+      });
+    }
+  }, [service?.id, form]);
 
   const selectedResourceId = form.watch('resource_id');
 
   useEffect(() => {
-    if (isBooking) {
+    if (isBooking && service?.id) {
       const fetchResources = async () => {
         setLoadingResources(true);
         try {
@@ -83,7 +104,7 @@ export const CreateTicketDynamic: React.FC<CreateTicketDynamicProps> = ({
       };
       fetchResources();
     }
-  }, [service.id, isBooking]);
+  }, [service?.id, isBooking]);
 
   const executeSubmission = async (data: any) => {
     setIsSubmitting(true);
@@ -92,16 +113,16 @@ export const CreateTicketDynamic: React.FC<CreateTicketDynamicProps> = ({
         title: data.title,
         description: data.description,
         priority: data.priority,
-        type: service.slug, 
+        type: service.slug,
         service_category_id: service.id,
         resource_id: isBooking ? data.resource_id : null,
         start_date: isBooking ? data.start_date : null,
         end_date: isBooking ? data.end_date : null,
-        ticket_data: data.ticket_data 
+        ticket_data: data.ticket_data
       };
 
       await api.post('/tickets', payload);
-      
+
       toast.success("Tiket berhasil dibuat!", {
         description: "Pengajuan Anda telah masuk ke sistem."
       });
@@ -164,181 +185,232 @@ export const CreateTicketDynamic: React.FC<CreateTicketDynamicProps> = ({
     }
   };
 
+  const typeStyle = service ? (() => {
+    if (service.type === 'booking') return 'bg-blue-50 text-blue-700 border-blue-200';
+    if (service.type === 'repair') return 'bg-orange-50 text-orange-700 border-orange-200';
+    return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  })() : '';
+
   return (
-    <div className="flex flex-col gap-8 lg:p-0 pb-20 animate-in fade-in slide-in-from-top-4 duration-700 w-full">
-      {/* HEADER SECTION */}
-      <div className="relative overflow-hidden rounded-[2rem] bg-slate-900 p-8 lg:p-10 text-white shadow-2xl">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-5">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={onBack}
-              className="h-12 w-12 rounded-2xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 transition-all text-white"
-            >
-              <ArrowLeft className="h-6 w-6" />
-            </Button>
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                 <Badge className="bg-blue-600 text-white border-none px-3 py-1 text-[10px] font-bold uppercase tracking-widest">
-                   <Sparkles className="h-3 w-3 mr-1.5" /> Formulir SIGAP
-                 </Badge>
-                 <div className="h-1 w-1 rounded-full bg-slate-700" />
-                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">SISTEM TERPADU</span>
-              </div>
-              <h1 className="text-3xl lg:text-4xl font-black text-white tracking-tight leading-none">
-                Pengajuan {service.name}
-              </h1>
-            </div>
-          </div>
-  
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" onClick={onBack} className="rounded-2xl px-6 text-slate-300 hover:text-white hover:bg-slate-800 font-bold">
-              Batal
-            </Button>
-            <div className={`px-4 py-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm flex items-center gap-2`}>
-                <div className={`h-2 w-2 rounded-full animate-pulse ${
-                    service.type === 'booking' ? 'bg-indigo-400' : 
-                    service.type === 'repair' ? 'bg-orange-400' : 'bg-emerald-400'
-                }`} />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-300">
-                    Mode {service.type}
-                </span>
-            </div>
-          </div>
+    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full font-sans pb-20">
+
+      {/* Header - Matching Manajemen Pengguna style */}
+      <div className="flex flex-wrap items-start justify-between gap-4 max-md:flex-col">
+        <div>
+          <h1 className="text-3xl font-bold">Buat Tiket Baru</h1>
+          <p className="text-muted-foreground">Isi formulir pengajuan layanan dengan lengkap dan benar.</p>
         </div>
-        
-        {service.type === 'repair' ? <Wrench className="absolute -right-8 -bottom-8 h-40 w-40 text-white opacity-5 rotate-12" /> : 
-         service.type === 'booking' ? <CalendarIcon className="absolute -right-8 -bottom-8 h-40 w-40 text-white opacity-5 rotate-12" /> :
-         <BookText className="absolute -right-8 -bottom-8 h-40 w-40 text-white opacity-5 rotate-12" />}
+        {service && (
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className={`capitalize py-1.5 px-3 border shadow-none ${typeStyle}`}>
+              {service.type === 'booking' ? 'Reservasi' : service.type === 'repair' ? 'Perbaikan' : 'Layanan Umum'}
+            </Badge>
+          </div>
+        )}
       </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="max-w-4xl mx-auto space-y-8">
-            <Card className="border-none shadow-sm overflow-hidden bg-white">
-              <CardHeader className="border-b border-slate-50 bg-slate-50/30 pb-6 pt-6 flex flex-row items-center gap-4">
-                <div className="p-2 bg-blue-600 rounded-lg text-white">
-                  <Info className="h-5 w-5" />
-                </div>
-                <div>
-                  <CardTitle className="text-xl font-bold text-slate-900">Detail Pengajuan</CardTitle>
-                  <p className="text-slate-500 text-sm italic">Lengkapi informasi di bawah untuk mengajukan layanan.</p>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="p-8 space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField control={form.control} name="title" rules={{required: "Judul wajib diisi"}} render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel>Judul Pengajuan</FormLabel>
-                      <FormControl><Input placeholder="Contoh: Peminjaman Aula untuk Rapat" {...field} className="rounded-xl h-12" /></FormControl>
-                      <FormMessage />
+      <div className="grid grid-cols-1 gap-6">
+        {/* 1. SELECTION SECTION */}
+        <Card className="border border-slate-200 shadow-sm overflow-hidden rounded-xl bg-white gap-0">
+          <CardHeader className="pb-3 border-b bg-slate-50/50 px-6 py-4">
+            <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+              <Layers className="h-4 w-4" /> Kategori Layanan
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-6 py-4">
+            <div className="flex flex-col gap-4">
+              <div className="w-full max-w-md">
+                <p className="text-sm text-slate-600 mb-4 font-medium italic">Silakan pilih jenis layanan yang Anda butuhkan:</p>
+                <Select value={service?.id || ''} onValueChange={onServiceChange}>
+                  <SelectTrigger className="h-12 bg-white border-slate-200 rounded-xl font-bold text-slate-700 shadow-none">
+                    <SelectValue placeholder="-- Pilih Layanan --" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {allServices.map(s => (
+                      <SelectItem key={s.id} value={s.id} className="font-medium">{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {!service ? (
+          <div className="flex flex-col items-start py-16 px-8 bg-slate-50/30 rounded-2xl border border-dashed border-slate-200">
+            <div className="flex items-center gap-3 mb-3">
+              <Sparkles className="h-6 w-6 text-slate-300" />
+              <h2 className="text-xl font-bold text-slate-400 tracking-tight">Menunggu Pilihan Layanan</h2>
+            </div>
+            <p className="text-sm text-slate-400 truncate">Daftar formulir akan muncul setelah Anda memilih kategori di atas.</p>
+          </div>
+        ) : (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+
+              {/* 2. MAIN CORE INFO SECTION */}
+              <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white rounded-xl gap-0">
+                <CardHeader className="pb-3 border-b bg-slate-50/50 px-6 py-4">
+                  <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <Info className="h-4 w-4 text-blue-500" /> Detail Informasi
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 space-y-6">
+                  <FormField control={form.control} name="title" rules={{ required: "Judul wajib diisi" }} render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-bold text-slate-700">Subjek Pengajuan *</FormLabel>
+                      <FormControl><Input placeholder="Contoh: Perbaikan AC Ruang Rapat" {...field} className="rounded-xl h-11 border-slate-200 focus:ring-2 focus:ring-blue-100 transition-all shadow-none" /></FormControl>
+                      <FormMessage className="text-[10px]" />
                     </FormItem>
                   )} />
 
+                  <FormField control={form.control} name="description" rules={{ required: "Deskripsi wajib diisi" }} render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-bold text-slate-700">Deskripsi / Alasan *</FormLabel>
+                      <FormControl><Textarea placeholder="Jelaskan kebutuhan Anda secara detail..." className="min-h-[140px] rounded-xl border-slate-200 focus:ring-2 focus:ring-blue-100 transition-all shadow-none py-3" {...field} /></FormControl>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )} />
+
+                  {/* PRIORITY - MERGED BELOW DESCRIPTION */}
                   <FormField control={form.control} name="priority" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Prioritas</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl><SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger></FormControl>
-                        <SelectContent>
-                          <SelectItem value="low">Rendah</SelectItem>
-                          <SelectItem value="medium">Normal</SelectItem>
-                          <SelectItem value="high">Tinggi</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormLabel className="font-bold text-slate-700">Prioritas</FormLabel>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {['low', 'medium', 'high'].map((p) => (
+                          <Button
+                            key={p}
+                            type="button"
+                            variant={field.value === p ? 'default' : 'outline'}
+                            onClick={() => field.onChange(p)}
+                            className={`rounded-xl px-6 h-10 font-bold text-xs uppercase tracking-wider shadow-none transition-all ${field.value === p
+                              ? (p === 'high' ? 'bg-red-600 hover:bg-red-700 border-red-600 text-white' : p === 'medium' ? 'bg-orange-500 hover:bg-orange-600 border-orange-500 text-white' : 'bg-blue-600 hover:bg-blue-700 border-blue-600 text-white')
+                              : 'text-slate-500 border-slate-200 hover:bg-slate-50'
+                              }`}
+                          >
+                            {p === 'low' ? 'Rendah' : p === 'medium' ? 'Normal' : 'Tinggi'}
+                          </Button>
+                        ))}
+                      </div>
                     </FormItem>
                   )} />
-                </div>
+                </CardContent>
+              </Card>
 
-                <FormField control={form.control} name="description" rules={{required: "Deskripsi wajib diisi"}} render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Deskripsi / Alasan</FormLabel>
-                    <FormControl><Textarea placeholder="Jelaskan kebutuhan Anda..." className="min-h-[120px] rounded-xl" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-
-                {isBooking && (
-                  <div className="space-y-6 pt-4 border-t border-slate-100">
-                    <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                      <CalendarIcon className="h-5 w-5 text-blue-600" /> Informasi Jadwal
-                    </h3>
-                    <FormField control={form.control} name="resource_id" rules={{required: "Pilih unit"}} render={({ field }) => (
+              {/* 3. BOOKING SECTION */}
+              {isBooking && (
+                <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white rounded-xl gap-0">
+                  <CardHeader className="pb-3 border-b bg-slate-50/50 px-6 py-4">
+                    <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                      <CalendarIcon className="h-4 w-4 text-orange-500" /> Penjadwalan Unit
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-6">
+                    <FormField control={form.control} name="resource_id" rules={{ required: "Pilih unit" }} render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Pilih Unit / Ruangan</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl><SelectTrigger className="rounded-xl h-12"><SelectValue placeholder={loadingResources ? "Memuat..." : "Pilih salah satu"} /></SelectTrigger></FormControl>
-                          <SelectContent>
+                        <FormLabel className="font-bold text-slate-700">Pilih Unit / Ruangan *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="h-11 bg-white border-slate-200 rounded-xl font-bold text-slate-700">
+                              <SelectValue placeholder={loadingResources ? "Memuat..." : "-- Pilih Unit --"} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="rounded-xl">
                             {resources.map((res) => (
-                              <SelectItem key={res.id} value={res.id}>{res.name}</SelectItem>
+                              <SelectItem key={res.id} value={res.id} className="py-2">{res.name}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )} />
 
                     {selectedResourceId && (
-                      <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <ResourceCalendar resourceId={selectedResourceId} onDateSelect={(date) => {
-                          const dateStr = format(date, 'yyyy-MM-dd');
-                          form.setValue('start_date', `${dateStr}T08:00`);
-                          form.setValue('end_date', `${dateStr}T09:00`);
-                        }} />
+                      <div className="space-y-6">
+                        <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/30">
+                          <ResourceCalendar resourceId={selectedResourceId} onDateSelect={(date) => {
+                            const dateStr = format(date, 'yyyy-MM-dd');
+                            form.setValue('start_date', `${dateStr}T08:00`);
+                            form.setValue('end_date', `${dateStr}T09:00`);
+                          }} />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField control={form.control} name="start_date" render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Clock className="h-3 w-3" /> Waktu Mulai (WITA)</FormLabel>
+                              <FormControl><Input type="datetime-local" className="rounded-xl h-10 bg-white border-slate-200 font-medium text-sm" {...field} /></FormControl>
+                            </FormItem>
+                          )} />
+                          <FormField control={form.control} name="end_date" render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Clock className="h-3 w-3" /> Waktu Selesai (WITA)</FormLabel>
+                              <FormControl><Input type="datetime-local" className="rounded-xl h-10 bg-white border-slate-200 font-medium text-sm" {...field} /></FormControl>
+                            </FormItem>
+                          )} />
+                        </div>
                       </div>
                     )}
+                  </CardContent>
+                </Card>
+              )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <FormField control={form.control} name="start_date" render={({ field }) => (
-                        <FormItem><FormLabel>Waktu Mulai</FormLabel><FormControl><Input type="datetime-local" className="rounded-xl h-12" {...field} /></FormControl></FormItem>
-                      )} />
-                      <FormField control={form.control} name="end_date" render={({ field }) => (
-                        <FormItem><FormLabel>Waktu Selesai</FormLabel><FormControl><Input type="datetime-local" className="rounded-xl h-12" {...field} /></FormControl></FormItem>
-                      )} />
-                    </div>
-                  </div>
-                )}
-
-                {service.form_schema && service.form_schema.length > 0 && (
-                  <div className="space-y-6 pt-4 border-t border-slate-100">
-                    <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                      <AlertCircle className="h-5 w-5 text-blue-600" /> Data Tambahan
-                    </h3>
+              {/* 4. DYNAMIC ATTRIBUTES */}
+              {service.form_schema && service.form_schema.length > 0 && (
+                <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white rounded-xl gap-0">
+                  <CardHeader className="pb-3 border-b bg-slate-50/50 px-6 py-4">
+                    <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-emerald-500" /> Detail Tambahan: {service.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
                     <DynamicFormRenderer schema={service.form_schema} form={form} />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              )}
 
-            <div className="flex flex-col sm:flex-row justify-between items-center bg-slate-900 p-8 rounded-[2rem] shadow-xl text-white gap-6 animate-in slide-in-from-bottom-4 duration-500">
-               <div className="space-y-1">
-                 <p className="text-blue-400 font-bold uppercase tracking-widest text-[10px]">Konfirmasi Pengajuan</p>
-                 <h3 className="text-xl font-bold">Siap untuk mengirim?</h3>
-                 <p className="text-slate-400 text-sm italic">Layanan: {service.name}</p>
-               </div>
-               <div className="flex items-center gap-3 w-full sm:w-auto">
-                 <Button type="button" variant="ghost" className="flex-1 sm:flex-none h-14 px-8 rounded-2xl hover:bg-white/10 text-slate-300" onClick={onBack}>Batal</Button>
-                 <Button type="submit" disabled={isSubmitting} className="flex-1 sm:flex-none h-14 px-10 rounded-2xl bg-blue-600 hover:bg-blue-700 font-bold shadow-lg shadow-blue-900/20">
-                   {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : <Send className="mr-2" />}
-                   Kirim Sekarang
-                 </Button>
-               </div>
-            </div>
-          </div>
-        </form>
-      </Form>
+              {/* 5. SUBMIT ACTION - MATCHING USER REQUESTED STYLE */}
+              <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-100">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onBack}
+                  className="max-md:w-full border-slate-200 text-slate-600 hover:bg-slate-50"
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-blue-600 hover:bg-blue-700 max-md:w-full min-w-[160px]"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="mr-2 h-4 w-4" />
+                  )}
+                  {isSubmitting ? 'Mengirim...' : 'Kirim Pengajuan'}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        )}
+      </div>
 
-      <AlertDialog open={conflictDialog.open} onOpenChange={(open) => !open && setConflictDialog(prev => ({...prev, open: false}))}>
-        <AlertDialogContent className="rounded-[2rem]">
+      <AlertDialog open={conflictDialog.open} onOpenChange={(open) => !open && setConflictDialog(prev => ({ ...prev, open: false }))}>
+        <AlertDialogContent className="rounded-2xl border-none shadow-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-amber-600 flex items-center gap-2"><AlertTriangle /> Jadwal Bentrok</AlertDialogTitle>
-            <AlertDialogDescription>Terdapat pengajuan lain di waktu yang sama. Ingin tetap melanjutkan?</AlertDialogDescription>
+            <AlertDialogTitle className="text-amber-600 flex items-center gap-2 text-xl font-bold">
+              <AlertTriangle className="h-6 w-6" /> Jadwal Bentrok
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500 font-medium pt-2 leading-relaxed">
+              Terdapat pengajuan lain di waktu yang sama pada unit ini. Apakah Anda ingin tetap melanjutkan pengajuan Anda?
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setConflictDialog(prev => ({...prev, open: false}))}>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={() => conflictDialog.data && executeSubmission(conflictDialog.data)} className="bg-amber-600">Tetap Ajukan</AlertDialogAction>
+          <AlertDialogFooter className="pt-4">
+            <AlertDialogCancel onClick={() => setConflictDialog(prev => ({ ...prev, open: false }))} className="rounded-xl border-slate-200 font-bold">Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={() => conflictDialog.data && executeSubmission(conflictDialog.data)} className="bg-amber-600 hover:bg-amber-700 rounded-xl font-bold">Tetap Ajukan</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

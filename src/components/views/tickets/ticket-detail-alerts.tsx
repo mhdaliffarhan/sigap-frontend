@@ -69,7 +69,7 @@ export const TicketDetailAlerts: React.FC<TicketDetailAlertsProps> = ({
       {/* Alert: Admin Layanan Review - For submitted tickets */}
       {effectiveRole === "admin_layanan" &&
         ["submitted", "pending_review"].includes(ticket.status) && (
-          <Card className="border-blue-200 bg-blue-50">
+          <Card className="border-blue-200 bg-blue-50 rounded-xl">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -117,7 +117,7 @@ export const TicketDetailAlerts: React.FC<TicketDetailAlertsProps> = ({
       {effectiveRole === "admin_layanan" &&
         ticket.type === "perbaikan" &&
         ticket.status === "waiting_for_submitter" && (
-          <Card className="border-red-200 bg-red-50">
+          <Card className="border-red-200 bg-red-50 rounded-xl">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -196,7 +196,7 @@ export const TicketDetailAlerts: React.FC<TicketDetailAlertsProps> = ({
             : "text-blue-600";
 
           return (
-            <Card className={cardBgClass}>
+            <Card className={`${cardBgClass} rounded-xl`}>
               <CardContent className="p-6 max-md:p-4">
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
@@ -332,7 +332,7 @@ export const TicketDetailAlerts: React.FC<TicketDetailAlertsProps> = ({
           if (!isUnrepairable) return null;
 
           return (
-            <Card className="border-red-200 bg-red-50 mb-4">
+            <Card className="border-red-200 bg-red-50 mb-4 rounded-xl">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3 flex-1">
@@ -365,7 +365,7 @@ export const TicketDetailAlerts: React.FC<TicketDetailAlertsProps> = ({
       {effectiveRole === "pegawai" &&
         ticket.type === "perbaikan" &&
         ticket.status === "waiting_for_submitter" && (
-          <Card className="border-orange-200 bg-orange-50">
+          <Card className="border-orange-200 bg-orange-50 rounded-xl">
             <CardContent className="p-6">
               <div className="flex items-start justify-between max-md:flex-col">
                 <div className="flex items-center gap-3">
@@ -403,7 +403,7 @@ export const TicketDetailAlerts: React.FC<TicketDetailAlertsProps> = ({
           if (!wasUnrepairable) return null;
 
           return (
-            <Card className="border-gray-200 bg-gray-50">
+            <Card className="border-gray-200 bg-gray-50 rounded-xl">
               <CardContent className="p-6">
                 <div className="flex items-start gap-3">
                   <AlertCircle className="h-8 w-8 text-gray-600 flex-shrink-0 mt-0.5" />
@@ -427,7 +427,7 @@ export const TicketDetailAlerts: React.FC<TicketDetailAlertsProps> = ({
         ticket.type === "perbaikan" &&
         ticket.status === "closed" &&
         !((ticket as any).feedback) && (
-          <Card className="border-amber-200 bg-amber-50">
+          <Card className="border-amber-200 bg-amber-50 rounded-xl">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">

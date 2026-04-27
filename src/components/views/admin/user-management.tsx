@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Shield, Users, Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getUsers, getUsersSync, addAuditLog, addNotification, api } from '@/lib/storage';
+import { getUsers, getUsersSync, addAuditLog, api } from '@/lib/storage';
 import { roleApi } from '@/lib/api';
 import type { User } from '@/types';
 
@@ -81,6 +81,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
   
   const [editFormData, setEditFormData] = useState({
     name: '',
+    username: '',
     nip: '',
     jabatan: '',
     email: '',
@@ -92,6 +93,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
   
   const [createFormData, setCreateFormData] = useState({
     name: '',
+    username: '',
     nip: '',
     jabatan: '',
     email: '',
@@ -137,6 +139,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
     try {
       const payload: any = {
         name: editFormData.name,
+        username: editFormData.username,
         nip: editFormData.nip,
         jabatan: editFormData.jabatan,
         email: editFormData.email,
@@ -185,6 +188,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
     try {
       const payload = {
         name: createFormData.name,
+        username: createFormData.username,
         nip: createFormData.nip,
         jabatan: createFormData.jabatan,
         email: createFormData.email.toLowerCase(),
@@ -220,6 +224,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
       // Reset Form
       setCreateFormData({
         name: '',
+        username: '',
         nip: '',
         jabatan: '',
         email: '',
@@ -271,7 +276,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
         addAuditLog({ userId: currentUser.id, action: 'USER_DELETED', details: `Deleted user ${selectedUser.email}` });
         toast.success('User berhasil dihapus');
       })
-      .catch(err => toast.error('Tidak dapat menghapus user', { description: 'User memiliki data terkait (tiket/log) dan tidak bisa dihapus.' }))
+      .catch(_err => toast.error('Tidak dapat menghapus user', { description: 'User memiliki data terkait (tiket/log) dan tidak bisa dihapus.' }))
       .finally(() => {
         setShowDeleteDialog(false);
         setSelectedUser(null);
@@ -346,7 +351,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
   const openEditDialog = (user: User) => {
     setSelectedUser(user);
     setEditFormData({
-      name: user.name,
+      name: user.name || '',
+      username: (user as any).username || '',
       nip: user.nip || '',
       jabatan: user.jabatan || '',
       email: user.email,
@@ -361,18 +367,18 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between max-md:flex-col max-md:items-start max-md:gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4 max-md:flex-col">
         <div>
-          <h1 className="text-3xl font-bold max-md:text-2xl">User Management</h1>
-          <p className="text-gray-500 mt-1 max-md:text-sm">Kelola pengguna dan permission</p>
+          <h1 className="text-3xl font-bold">Manajemen Pengguna</h1>
+          <p className="text-muted-foreground">Kelola data pegawai, hak akses, dan detail profil.</p>
         </div>
-        <div className="flex items-center gap-3 max-md:flex-col max-md:items-stretch max-md:w-full">
-          <Badge variant="outline" className="gap-2 justify-center py-2 md:py-1">
-            <Users className="h-4 w-4" />
+        <div className="flex items-center gap-3 max-md:w-full max-md:flex-col">
+          <Badge variant="outline" className="gap-2 justify-center py-2 px-4 shadow-sm bg-white border-blue-200 text-blue-700 max-md:w-full">
+            <Users className="mr-1 h-4 w-4" />
             {users.length} Total Users
           </Badge>
-          <Button onClick={() => setShowCreateDialog(true)} className="gap-2 max-md:w-full bg-blue-600 hover:bg-blue-700">
-            <Plus className="h-4 w-4" />
+          <Button onClick={() => setShowCreateDialog(true)} className="bg-blue-600 hover:bg-blue-700 max-md:w-full">
+            <Plus className="mr-2 h-4 w-4" />
             Tambah User Baru
           </Button>
         </div>
@@ -390,8 +396,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
       />
 
       {/* Users Table */}
-      <Card>
-        <CardContent className="p-0">
+      <Card className="rounded-xl overflow-hidden shadow-sm border-slate-200">
+        <CardContent className="p-0 overflow-x-auto">
           {loadingData ? (
              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                <Loader2 className="h-8 w-8 animate-spin mb-2 text-blue-600" />

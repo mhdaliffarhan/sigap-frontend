@@ -6,6 +6,8 @@ import {
   Trash2,
   Upload,
   Download,
+  FileSpreadsheet,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -28,6 +30,12 @@ import {
 import { Label } from "./ui/label";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 // Asset BMN interface
 interface AssetBMN {
@@ -313,24 +321,29 @@ export const BmnAssetManagement: React.FC<BmnAssetManagementProps> = () => {
           <p className="text-gray-600 mt-1 max-md:text-sm">Kelola data Barang Milik Negara</p>
         </div>
         <div className="flex gap-2 max-md:flex-col max-md:w-full">
-          <Button variant="outline" onClick={handleDownloadTemplate} size="lg" className="rounded-full w-30 !outline !outline-black !outline-2 max-md:w-full" >
-            <Download className="h-4 w-4" />
-            Template
-          </Button>
-          <Button variant="outline" onClick={handleDownloadAll} size="lg" className="rounded-full w-30 !outline !outline-black !outline-2 max-md:w-full">
-            <Download className="h-4 w-4" />
-            Export Data
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            size="lg"
-            className="rounded-full w-30 !outline !outline-black !outline-2 max-md:w-full"
-            disabled={importing}
-          >
-            <Upload className="h-4 w-4" />
-            {importing ? "Importing..." : "Import Excel"}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="text-slate-600 border-slate-200 max-md:w-full">
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Data Excel
+                <ChevronDown className="ml-2 h-3.5 w-3.5 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={handleDownloadTemplate}>
+                <Download className="mr-2 h-4 w-4 text-green-600" />
+                Unduh Template
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDownloadAll}>
+                <Download className="mr-2 h-4 w-4 text-blue-600" />
+                Export Semua Data
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => fileInputRef.current?.click()} disabled={importing}>
+                <Upload className="mr-2 h-4 w-4 text-amber-600" />
+                {importing ? "Importing..." : "Import Excel"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <input
             ref={fileInputRef}
             type="file"
@@ -338,8 +351,8 @@ export const BmnAssetManagement: React.FC<BmnAssetManagementProps> = () => {
             onChange={handleImportExcel}
             className="hidden"
           />
-          <Button onClick={() => handleOpenDialog()} size="lg" className="rounded-full w-30 !outline !outline-black !outline-2 max-md:w-full">
-            <Plus className="h-4 w-4" />
+          <Button onClick={() => handleOpenDialog()} className="bg-blue-600 hover:bg-blue-700 text-white max-md:w-full">
+            <Plus className="mr-2 h-4 w-4" />
             Tambah Asset
           </Button>
         </div>
@@ -682,7 +695,7 @@ export const BmnAssetManagement: React.FC<BmnAssetManagementProps> = () => {
             <Button variant="outline" onClick={() => setShowDialog(false)}>
               Batal
             </Button>
-            <Button onClick={handleSubmit}>
+            <Button onClick={handleSubmit} className="bg-blue-600 hover:bg-blue-700 text-white max-md:w-full">
               {editingAsset ? "Update" : "Tambah"} Asset
             </Button>
           </DialogFooter>
@@ -739,8 +752,9 @@ export const BmnAssetManagement: React.FC<BmnAssetManagementProps> = () => {
             <Button
               variant="destructive"
               onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white max-md:w-full"
             >
-              <Trash2 className="h-4 w-4 mr-2" />
+              <Trash2 className="mr-2 h-4 w-4" />
               Ya, Hapus Asset
             </Button>
           </DialogFooter>

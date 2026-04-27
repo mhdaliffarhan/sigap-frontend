@@ -74,7 +74,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({ schema
   };
 
   return (
-    <div className="grid gap-6 border p-5 rounded-lg bg-slate-50/50 border-slate-200">
+    <div className="grid gap-6">
       {schema.map((field, index) => {
         const isBmnCheckField = field.name === 'nup' && hasBmnFields;
 
@@ -89,7 +89,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({ schema
               render={({ field: formField }) => (
                 <FormItem className="flex flex-col">
                   <div className="flex items-center justify-between">
-                    <FormLabel className="font-semibold text-slate-700">
+                    <FormLabel className="font-bold text-slate-700">
                       {field.label} {field.required && <span className="text-red-500">*</span>}
                     </FormLabel>
                   </div>

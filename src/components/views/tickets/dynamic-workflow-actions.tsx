@@ -1,6 +1,6 @@
 // src/components/views/tickets/dynamic-workflow-actions.tsx
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import {
@@ -93,14 +93,14 @@ export function DynamicWorkflowActions({ ticketId, onUpdate }: DynamicWorkflowAc
   }
 
   return (
-    <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-dashed">
+    <div className="flex flex-wrap gap-2">
       {actions.map((action) => (
         <Button
           key={action.id}
           variant={action.variant as any || 'default'}
           onClick={() => handleActionClick(action)}
           disabled={submitting}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 h-11 px-6 rounded-xl font-bold shadow-sm transition-all hover:translate-y-[-1px] active:translate-y-0"
         >
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           {action.label}

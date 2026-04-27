@@ -36,14 +36,14 @@ Ikuti langkah-langkah berikut untuk menjalankan aplikasi di lingkungan pengemban
 
 ## ✨ Fitur Utama
 
-- **Dashboard Interaktif**: Statistik tiket dan aktivitas dalam bentuk chart (menggunakan Recharts).
-- **Manajemen Aset BMN**: Pencatatan dan pengelolaan aset negara secara digital.
-- **Dynamic Form Engine**: Sistem form yang fleksibel untuk berbagai jenis layanan layanan.
-- **Sistem Tiket & Workflow**: Alur pengajuan tiket dari Pegawai hingga penyelesaian oleh Teknisi/PJ.
-- **Manajemen Profil**: Pengaturan akun, ganti password, dan upload avatar.
-- **Manajemen User (Admin)**: Kontrol akses role-based untuk seluruh pengguna.
-- **Pesan & Notifikasi**: Integrasi Sonner untuk toast notification yang interaktif.
-- **Dark Mode & Themes**: Dukungan tema gelap/terang melalui `next-themes`.
+- **Dashboard Premium Slate-Based**: Statistik tiket dan aktivitas dengan desain modern yang terstandarisasi.
+- **Manajemen Aset BMN**: Integrasi pencarian aset dengan pengajuan tiket perbaikan.
+- **Dynamic Workflow Action Panel**: Panel aksi yang adaptif berdasarkan *state machine* tiket.
+- **Manajemen Profil & SSO Prep**: Pengaturan akun yang bersih dengan sistem avatar otomatis (inisial/foto SSO).
+- **Feedback & Rating System**: Modul testimoni pengguna untuk setiap layanan yang telah selesai.
+- **Manajemen User & Role Management**: Kontrol akses granular untuk Admin dan Super Admin.
+- **Pesan & Notifikasi Hub**: Modal notifikasi terpusat dan sistem toast (Sonner).
+- **Responsive Layout**: Antarmuka yang adaptif dari desktop hingga perangkat mobile.
 
 ## 📂 Struktur direktori & Arsitektur
 

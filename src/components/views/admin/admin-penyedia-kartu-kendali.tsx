@@ -154,7 +154,7 @@ export const AdminPenyediaKartuKendali: React.FC = () => {
               {completedWorkOrders.map((wo) => (
                 <Card key={wo.id} className="border-l-4 border-l-green-500">
                   <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between max-md:flex-col max-md:gap-4 w-full">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <Badge
@@ -204,9 +204,9 @@ export const AdminPenyediaKartuKendali: React.FC = () => {
 
                       <Button
                         onClick={() => handleCreateKartuKendali(wo)}
-                        className="bg-blue-600 hover:bg-blue-700"
+                        className="bg-blue-600 hover:bg-blue-700 text-white max-md:w-full"
                       >
-                        <FileText className="h-4 w-4 mr-2" />
+                        <FileText className="mr-2 h-4 w-4" />
                         Isi Kartu Kendali
                       </Button>
                     </div>

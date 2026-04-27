@@ -64,14 +64,12 @@ export const ReportsView: React.FC<ReportsViewProps> = () => {
         <Button
           onClick={handleExport}
           disabled={isExporting}
-          variant="outline" // Gunakan variant bawaan shadcn untuk base style
-          className="rounded-full gap-2 border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-slate-900 shadow-sm transition-all max-md:w-full"
+          className="bg-green-600 hover:bg-green-700 text-white max-md:w-full"
         >
           {isExporting ? (
-            <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
+            <Loader2 className="mr-2 h-4 w-4 animate-spin text-white" />
           ) : (
-            // Menggunakan ikon FileSpreadsheet lebih spesifik untuk Excel dibanding Download biasa
-            <Download className="h-4 w-4 text-slate-500" />
+            <Download className="mr-2 h-4 w-4 text-white" />
           )}
           <span>Unduh Laporan (.xlsx)</span>
         </Button>

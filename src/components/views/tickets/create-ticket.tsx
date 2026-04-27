@@ -31,7 +31,7 @@ import {
   Calendar as CalendarIcon,
   Clock,
 } from "lucide-react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import type { User, TicketType, SeverityLevel } from "@/types";
@@ -70,6 +70,39 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({
   });
 
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 3;
+
+  const nextStep = () => {
+    if (currentStep === 1) {
+      if (!formData.title.trim() || !formData.description.trim()) {
+        import("sonner").then(module => module.toast.error("Mohon lengkapi judul dan deskripsi"));
+        return;
+      }
+    }
+    if (currentStep === 2) {
+      if (ticketType === "perbaikan") {
+        if (!assetChecked) {
+          import("sonner").then(module => module.toast.error("Mohon cek barang terlebih dahulu"));
+          return;
+        }
+        if (!formData.assetLocation) {
+          import("sonner").then(module => module.toast.error("Mohon isi lokasi barang"));
+          return;
+        }
+      }
+      if (ticketType === "zoom_meeting") {
+        if (!formData.meetingDate || !formData.startTime || !formData.endTime || !formData.coHostName) {
+           import("sonner").then(module => module.toast.error("Lengkapi detail zoom"));
+           return;
+        }
+      }
+    }
+    setCurrentStep((prev) => Math.min(prev + 1, totalSteps));
+  };
+  
+  const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
@@ -334,6 +367,35 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Stepper Header */}
+              <div className="flex items-center justify-between mb-10 relative pt-2 px-4 max-w-lg mx-auto">
+                 <div className="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-1 bg-gray-100 rounded-full z-0"></div>
+                 <div className="absolute left-6 top-1/2 -translate-y-1/2 h-1 bg-blue-600 rounded-full z-0 transition-all duration-500" style={{ width: `calc(${((currentStep - 1) / (totalSteps - 1)) * 100}% - 1.5rem)`}}></div>
+                 
+                 {[1, 2, 3].map(step => (
+                    <div key={step} className={`relative z-10 flex flex-col items-center justify-center w-10 h-10 rounded-full border-2 font-bold transition-all duration-300 ${
+                       currentStep >= step ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white border-gray-300 text-gray-400'
+                    }`}>
+                      {step}
+                      <span className={`absolute -bottom-7 text-[11px] whitespace-nowrap font-bold uppercase tracking-wider ${currentStep >= step ? 'text-blue-600' : 'text-gray-400'}`}>
+                        {step === 1 ? 'Informasi Dasar' : step === 2 ? 'Detail Khusus' : 'Lampiran'}
+                      </span>
+                    </div>
+                 ))}
+              </div>
+
+              <div className="overflow-visible mt-12 min-h-[300px]">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                     key={currentStep}
+                     initial={{ x: 20, opacity: 0 }}
+                     animate={{ x: 0, opacity: 1 }}
+                     exit={{ x: -20, opacity: 0 }}
+                     transition={{ duration: 0.2 }}
+                  >
+                    {currentStep === 1 && (
+                      <div className="space-y-6">
+
               {/* Common Fields */}
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -411,7 +473,11 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({
                 )}
               </div>
 
-              {/* Type-specific Fields */}
+                      </div>
+                    )}
+                    {currentStep === 2 && (
+                      <div className="space-y-6">
+
               {ticketType === "perbaikan" && (
                 <div className="space-y-4 border-t pt-4">
                   <h3 className="font-semibold">Informasi Barang BMN</h3>
@@ -719,7 +785,11 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({
                 </div>
               )}
 
-              {/* Attachments */}
+                      </div>
+                    )}
+                    {currentStep === 3 && (
+                      <div className="space-y-6">
+
               <div className="space-y-3 border-t pt-4">
                 <Label>Upload File Pendukung (Opsional)</Label>
                 <div className="space-y-2">
@@ -760,26 +830,30 @@ export const CreateTicket: React.FC<CreateTicketProps> = ({
                 )}
               </div>
 
-              {/* Submit */}
-              <div className="flex gap-3 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onCancel}
-                  disabled={isSubmitting}
-                  className="flex-1 cursor-pointer"
-                >
-                  Batal
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 cursor-pointer"
-                >
-                  {isSubmitting ? "Mengirim..." : "Ajukan Tiket"}
-                </Button>
+                      </div>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
               </div>
-            </form>
+
+              {/* Navigation Buttons */}
+              <div className="flex gap-3 pt-6 border-t mt-6">
+                {currentStep === 1 ? (
+                  <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting} className="flex-1 cursor-pointer h-12">Batal</Button>
+                ) : (
+                  <Button type="button" variant="outline" onClick={prevStep} disabled={isSubmitting} className="flex-1 cursor-pointer h-12">Kembali</Button>
+                )}
+                
+                {currentStep < totalSteps ? (
+                  <Button type="button" onClick={nextStep} className="bg-blue-600 hover:bg-blue-700 text-white max-md:w-full">Lanjut</Button>
+                ) : null}
+                {currentStep === totalSteps && (
+                  <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white max-md:w-full">
+                    {isSubmitting ? "Mengirim..." : "Ajukan Tiket"}
+                  </Button>
+                )}
+              </div>
+</form>
           </CardContent>
         </Card>
       </div>

@@ -13,8 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { 
   Users, 
   Edit, 
-  Trash2, 
-  Briefcase,
+  Trash2,
   ShieldAlert,
   Lock // Ditambahkan untuk reset password
 } from 'lucide-react';
@@ -37,15 +36,7 @@ interface UserManagementTableProps {
   getRoleBadge: (role: UserRole) => React.ReactNode;
 }
 
-// Helper untuk inisial nama
-const getInitials = (name: string) => {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .substring(0, 2);
-};
+// Helper tidak diperlukan lagi karena avatar profil dihapus
 
 export const UserManagementTable: React.FC<UserManagementTableProps> = ({
   users,
@@ -56,17 +47,26 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
   onResetPassword,
   getRoleBadge,
 }) => {
+  // Pagination State
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const itemsPerPage = 10;
+
+  // Watch for changes in users array length (like filtering), resetting to page 1
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [users.length]);
+
   return (
-    <div className="rounded-md border bg-white shadow-sm overflow-hidden">
+    <div className="bg-white">
       <Table>
-        <TableHeader className="bg-gray-100">
+        <TableHeader className="bg-slate-50">
           <TableRow>
-            <TableHead className="w-[250px] border-r border-b font-semibold text-gray-900 whitespace-nowrap text-center pl-4">User Profile</TableHead>
-            <TableHead className="w-[200px] border-r border-b font-semibold text-gray-900 whitespace-nowrap text-center">Email</TableHead>
-            <TableHead className="w-[180px] border-r border-b font-semibold text-gray-900 whitespace-nowrap text-center">Role & Unit</TableHead>
-            <TableHead className="w-[120px] border-r border-b font-semibold text-gray-900 whitespace-nowrap text-center">Status</TableHead>
-            <TableHead className="w-[150px] border-r border-b font-semibold text-gray-900 whitespace-nowrap text-center">Terdaftar</TableHead>
-            <TableHead className="w-[1%] border-b font-semibold text-gray-900 whitespace-nowrap text-center text-center px-4">Aksi</TableHead>
+            <TableHead className="w-[60px] border-r border-b font-semibold text-center text-slate-700">No</TableHead>
+            <TableHead className="w-[200px] border-r border-b font-semibold text-slate-700 whitespace-nowrap pl-4">Nama</TableHead>
+            <TableHead className="w-[180px] border-r border-b font-semibold text-slate-700 whitespace-nowrap px-4">Username</TableHead>
+            <TableHead className="w-[180px] border-r border-b font-semibold text-slate-700 whitespace-nowrap px-4">Role</TableHead>
+            <TableHead className="w-[180px] border-r border-b font-semibold text-slate-700 whitespace-nowrap text-center">Terakhir Login</TableHead>
+            <TableHead className="w-[1%] border-b font-semibold text-slate-700 whitespace-nowrap text-center px-4">Aksi</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -83,7 +83,7 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
               </TableCell>
             </TableRow>
           ) : (
-            users.map((user, index) => {
+            users.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((user, index) => {
               // Cek apakah user baris ini adalah user yang sedang login
               const isCurrentUser = user.id === currentUser.id;
 
@@ -93,34 +93,33 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="hover:bg-blue-50/50 transition-colors group"
+                  className="hover:bg-slate-50/50 transition-colors group"
                 >
+                  {/* Kolom No */}
+                  <TableCell className="border-r border-b font-medium text-center text-slate-500">
+                    {(currentPage - 1) * itemsPerPage + index + 1}
+                  </TableCell>
+
                   {/* Kolom Nama */}
-                  <TableCell className="border-r border-b py-3 pl-4 align-middle whitespace-nowrap">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold ring-1 ring-blue-200">
-                        {getInitials(user.name)}
-                      </div>
-                      <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-900">{user.name}</span>
-                          {isCurrentUser && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 h-5">
-                              You
-                            </Badge>
-                          )}
-                      </div>
+                  <TableCell className="border-r border-b py-3 pl-4 align-middle whitespace-nowrap bg-white group-hover:bg-transparent">
+                    <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">{user.name}</span>
+                        {isCurrentUser && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 h-5">
+                            You
+                          </Badge>
+                        )}
                     </div>
                   </TableCell>
 
-                  {/* Kolom Email */}
-                  <TableCell className="border-r border-b py-3 align-middle whitespace-nowrap">
-                     <span className="text-sm text-gray-600">{user.email}</span>
+                  {/* Kolom Username (Email) */}
+                  <TableCell className="border-r border-b py-3 px-4 align-middle whitespace-nowrap bg-white group-hover:bg-transparent">
+                     <span className="text-sm font-mono text-gray-600">{(user as any).username || user.email}</span>
                   </TableCell>
 
-                  {/* Kolom Role & Unit Kerja */}
-                  <TableCell className="border-r border-b py-3 align-middle whitespace-nowrap">
+                  {/* Kolom Role */}
+                  <TableCell className="border-r border-b py-3 px-4 align-middle whitespace-nowrap bg-white group-hover:bg-transparent">
                     <div className="flex items-center gap-2">
-                      {/* Role Badge */}
                       <div className="flex-shrink-0">
                         {Array.isArray(user.roles) && user.roles.length > 0
                           ? user.roles.map((r) => (
@@ -131,40 +130,26 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                           : <div className="scale-90 origin-left">{getRoleBadge(user.role)}</div>
                         }
                       </div>
-                      {/* Unit Kerja */}
-                      <div className="h-4 w-[1px] bg-gray-300 mx-1"></div>
-                      <div className="flex items-center text-xs text-gray-600 gap-1 truncate max-w-[120px]" title={user.unitKerja}>
-                        <Briefcase className="h-3 w-3 text-gray-400" />
-                        <span>{user.unitKerja || '-'}</span>
-                      </div>
                     </div>
                   </TableCell>
 
-                  {/* Kolom Status */}
-                  <TableCell className="border-r border-b py-3 align-middle text-center whitespace-nowrap">
-                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                      user.isActive 
-                        ? 'bg-green-50 text-green-700 border-green-200' 
-                        : 'bg-red-50 text-red-700 border-red-200'
-                    }`}>
-                      <span className={`h-1.5 w-1.5 rounded-full mr-1.5 ${
-                        user.isActive ? 'bg-green-600' : 'bg-red-600'
-                      }`} />
-                      {user.isActive ? 'Aktif' : 'Nonaktif'}
-                    </div>
-                  </TableCell>
-
-                  {/* Kolom Tanggal */}
-                  <TableCell className="border-r border-b py-3 align-middle text-sm text-gray-500 whitespace-nowrap">
-                    {new Date(user.createdAt).toLocaleDateString('id-ID', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric'
-                    })}
+                  {/* Kolom Last Login */}
+                  <TableCell className="border-r border-b py-3 px-4 align-middle text-center text-sm text-gray-500 whitespace-nowrap bg-white group-hover:bg-transparent">
+                    {(user as any).lastLogin || (user as any).last_login ? (
+                      new Date((user as any).lastLogin || (user as any).last_login).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })
+                    ) : (
+                      <span className="text-slate-400 italic">Belum Login</span>
+                    )}
                   </TableCell>
 
                   {/* Kolom Aksi */}
-                  <TableCell className="border-b py-3 px-4 align-middle text-center whitespace-nowrap">
+                  <TableCell className="border-b py-3 px-4 align-middle text-center whitespace-nowrap bg-white/50 group-hover:bg-transparent">
                     <div className="flex items-center justify-center gap-2">
                       
                       {/* SWITCH STATUS */}
@@ -196,9 +181,9 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                       
                       {/* TOMBOL EDIT (Selalu muncul) */}
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
-                        className="h-8 w-8 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                        className="h-8 w-8 text-blue-600 border border-blue-200 hover:bg-blue-50"
                         onClick={() => onEdit(user)}
                       >
                         <Edit className="h-4 w-4" />
@@ -210,9 +195,9 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="icon"
-                                className="h-8 w-8 text-gray-500 hover:text-orange-600 hover:bg-orange-50"
+                                className="h-8 w-8 text-orange-600 border border-orange-200 hover:bg-orange-50"
                                 onClick={() => onResetPassword(user)}
                               >
                                 <Lock className="h-4 w-4" />
@@ -233,10 +218,10 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                               {/* Span pembungkus agar tooltip jalan meski disabled */}
                               <span className="inline-block"> 
                                 <Button
-                                  variant="ghost"
+                                  variant="outline"
                                   size="icon"
                                   disabled={isCurrentUser} // Disabled jika diri sendiri
-                                  className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50 disabled:text-gray-300 disabled:hover:bg-transparent"
+                                  className="h-8 w-8 text-red-600 border border-red-200 hover:bg-red-50 hover:text-red-700 disabled:text-gray-300 disabled:border-gray-200 disabled:hover:bg-transparent"
                                   onClick={() => onDelete(user)}
                                 >
                                   {isCurrentUser ? (
@@ -263,6 +248,48 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
           )}
         </TableBody>
       </Table>
+      
+      {/* Pagination Implementation */}
+      {users.length > 0 && (
+        <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200 text-sm max-md:flex-col max-md:gap-4">
+          <div className="text-slate-500">
+            Menampilkan {Math.min((currentPage - 1) * itemsPerPage + 1, users.length)} - {Math.min(currentPage * itemsPerPage, users.length)} dari {users.length} data
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="h-8 px-3"
+            >
+              Sebelumnya
+            </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.ceil(users.length / itemsPerPage) }).map((_, i) => (
+                <Button
+                  key={i}
+                  variant={currentPage === i + 1 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={`h-8 w-8 p-0 ${currentPage === i + 1 ? 'bg-blue-600 text-white' : ''}`}
+                >
+                  {i + 1}
+                </Button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.min(Math.ceil(users.length / itemsPerPage), p + 1))}
+              disabled={currentPage === Math.ceil(users.length / itemsPerPage)}
+              className="h-8 px-3"
+            >
+              Selanjutnya
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
+};

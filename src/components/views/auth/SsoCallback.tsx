@@ -3,7 +3,8 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { setCurrentUser } from "@/lib/storage"; // Pastikan path ini benar
+import { setCurrentUser } from "@/lib/storage";
+import { motion } from "motion/react";
 
 // Definisikan tipe response agar autocomplete jalan
 interface SsoResponse {
@@ -75,12 +76,19 @@ export default function SsoCallback() {
   }, [navigate, searchParams]);
 
   return (
-    <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-gray-50">
-      <div className="p-8 bg-white rounded-2xl shadow-xl flex flex-col items-center">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-600 mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900">Sedang Memverifikasi...</h3>
-        <p className="text-gray-500 text-sm mt-2">{status}</p>
-      </div>
+    <div className="min-h-screen grid place-items-center bg-gradient-to-br from-blue-50 via-white to-blue-50 p-4">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="p-8 bg-white/80 backdrop-blur-md rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-white/50 flex flex-col items-center max-w-sm w-full"
+      >
+        <div className="h-16 w-16 bg-blue-50 rounded-full flex items-center justify-center mb-6 shadow-inner ring-1 ring-blue-100">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900 tracking-tight">Memverifikasi</h3>
+        <p className="text-gray-500 text-sm mt-2 text-center animate-pulse">{status}</p>
+      </motion.div>
     </div>
   );
 }

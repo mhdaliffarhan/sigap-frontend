@@ -66,20 +66,20 @@ export function SchemaBuilder({ value = [], onChange }: SchemaBuilderProps) {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <Label>Rancangan Formulir (Input Dinamis)</Label>
-        <Button type="button" variant="outline" size="sm" onClick={addField}>
+        <Button type="button" variant="outline" size="sm" onClick={addField} className="text-blue-600 border-blue-200 hover:bg-blue-50">
           <Plus className="mr-2 h-4 w-4" /> Tambah Input
         </Button>
       </div>
 
       {value.length === 0 && (
-        <div className="text-center p-6 border-2 border-dashed rounded-md text-muted-foreground text-sm">
+        <div className="text-center p-6 border-2 border-dashed rounded-xl text-muted-foreground text-sm">
           Belum ada input form yang didefinisikan. Klik "Tambah Input" untuk mulai.
         </div>
       )}
 
       <div className="space-y-3 mb-6">
         {value.map((field, index) => (
-          <Card key={index} className="relative group border-l-4 border-l-blue-500">
+          <Card key={index} className="relative group border-l-4 border-l-blue-500 rounded-xl">
             <CardContent className="p-4 grid gap-4 md:grid-cols-12 items-start">
               
               {/* Kolom 1: Label & Name */}
@@ -155,9 +155,9 @@ export function SchemaBuilder({ value = [], onChange }: SchemaBuilderProps) {
               {/* Kolom 4: Hapus */}
               <div className="md:col-span-1 flex justify-end">
                 <Button 
-                  variant="ghost" 
+                  variant="outline" 
                   size="icon" 
-                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                  className="text-red-600 border-red-200 hover:bg-red-50 h-8 w-8"
                   onClick={() => removeField(index)}
                 >
                   <Trash2 className="h-4 w-4" />

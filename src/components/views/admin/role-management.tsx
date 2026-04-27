@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { roleApi } from "@/lib/api";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -28,13 +30,17 @@ import {
 } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus, Shield, Loader2, Settings } from "lucide-react";
+import { Pencil, Trash2, Plus, Shield, Loader2, Info } from "lucide-react";
 
 export default function RoleManagement() {
   const [roles, setRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<any>(null);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const form = useForm({
     defaultValues: { code: "", name: "", description: "" },
@@ -106,51 +112,48 @@ export default function RoleManagement() {
   };
 
   return (
-    <div className="flex flex-col gap-10 lg:p-8 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-blue-600 rounded-xl shadow-lg shadow-blue-200">
-            <Shield className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-              Manajemen Role
-            </h1>
-            <p className="text-sm text-slate-500 mt-0.5">
-              Kelola hak akses dan penugasan petugas secara dinamis.
-            </p>
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-4 max-md:flex-col">
+        <div>
+          <h1 className="text-3xl font-bold">Manajemen Role</h1>
+          <p className="text-muted-foreground">
+            Kelola hak akses dan penugasan petugas secara dinamis.
+          </p>
         </div>
-        <Button 
-          onClick={() => openModal()} 
-          className="rounded-md bg-blue-600 hover:bg-blue-700 shadow-sm gap-2"
-        >
-          <Plus className="h-4 w-4" /> Tambah Role Baru
-        </Button>
+        <div className="flex items-center gap-3 max-md:w-full">
+          <Button 
+            onClick={() => openModal()} 
+            className="bg-blue-600 hover:bg-blue-700 max-md:w-full"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Tambah Role Baru
+          </Button>
+        </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in zoom-in-95 duration-500">
-        <Table>
-          <TableHeader className="bg-slate-50/50 border-b border-slate-100">
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[200px] font-bold text-slate-500 uppercase text-[10px] tracking-wider pl-6 py-4">
+      <Card className="rounded-xl overflow-hidden shadow-sm border-slate-200">
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-[800px]">
+            <TableHeader className="bg-slate-50">
+            <TableRow>
+              <TableHead className="w-[60px] border-r border-b font-semibold text-center text-slate-700">No</TableHead>
+              <TableHead className="w-[180px] border-r border-b font-semibold text-slate-700 px-4">
                 Kode / API Slug
               </TableHead>
-              <TableHead className="w-[250px] font-bold text-slate-500 uppercase text-[10px] tracking-wider py-4">
+              <TableHead className="w-[250px] border-r border-b font-semibold text-slate-700 px-4">
                 Nama Jabatan
               </TableHead>
-              <TableHead className="font-bold text-slate-500 uppercase text-[10px] tracking-wider py-4">
-                Deskripsi Tugas
+              <TableHead className="border-r border-b font-semibold text-slate-700 px-4">
+                 Deskripsi Tugas
               </TableHead>
-              <TableHead className="w-[120px] font-bold text-slate-500 uppercase text-[10px] tracking-wider text-center pr-6 py-4">
+              <TableHead className="w-[120px] border-b font-semibold text-slate-700 text-center px-4">
                 Kelola
               </TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="divide-y divide-slate-50">
+          <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-20">
+                <TableCell colSpan={5} className="text-center py-20">
                   <div className="flex flex-col items-center justify-center text-slate-400">
                     <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
                     <span className="text-sm font-medium">Menyinkronkan data role...</span>
@@ -159,7 +162,7 @@ export default function RoleManagement() {
               </TableRow>
             ) : roles.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-20">
+                <TableCell colSpan={5} className="text-center py-20">
                   <div className="flex flex-col items-center justify-center text-slate-300">
                     <Shield className="h-12 w-12 mb-4 opacity-20" />
                     <p className="font-bold text-slate-500 text-lg">Belum Ada Role</p>
@@ -168,42 +171,46 @@ export default function RoleManagement() {
                 </TableCell>
               </TableRow>
             ) : (
-              roles.map((role) => (
+              roles.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((role, idx) => (
                 <TableRow
                   key={role.id}
-                  className="group hover:bg-slate-50/80 transition-all duration-200 border-none"
+                  className="group hover:bg-slate-50/50 transition-colors"
                 >
-                  <TableCell className="pl-6 py-5">
-                    <Badge variant="outline" className="font-mono text-[10px] uppercase bg-slate-50 text-slate-600 border-slate-200 px-2 py-0.5">
+                  <TableCell className="border-r border-b font-medium text-center text-slate-500">
+                    {(currentPage - 1) * itemsPerPage + idx + 1}
+                  </TableCell>
+
+                  <TableCell className="border-r border-b font-medium bg-white group-hover:bg-transparent px-4">
+                    <Badge variant="outline" className="font-mono text-xs uppercase bg-slate-50 text-slate-600 border-slate-200">
                       {role.code}
                     </Badge>
                   </TableCell>
 
-                  <TableCell className="py-5">
-                    <div className="font-bold text-slate-900 flex items-center gap-2.5">
+                  <TableCell className="border-r border-b font-medium text-slate-900 bg-white group-hover:bg-transparent px-4">
+                    <div className="flex items-center gap-2.5">
                       <div className="h-2 w-2 rounded-full bg-blue-500" />
                       {role.name}
                     </div>
                   </TableCell>
 
-                  <TableCell className="py-5 text-sm text-slate-500 max-w-md truncate italic">
+                  <TableCell className="border-r border-b text-sm text-slate-500 bg-white group-hover:bg-transparent px-4 max-w-md truncate italic">
                     {role.description || "Tidak ada deskripsi spesifik."}
                   </TableCell>
 
-                  <TableCell className="pr-6 py-5 text-center">
-                    <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <TableCell className="border-b text-center bg-white/50 group-hover:bg-transparent px-4">
+                    <div className="flex items-center justify-center gap-2">
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
-                        className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md"
+                        className="h-8 w-8 text-blue-600 border border-blue-200 hover:bg-blue-50"
                         onClick={() => openModal(role)}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
-                        className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md"
+                        className="h-8 w-8 text-red-600 border border-red-200 hover:bg-red-50 hover:text-red-700"
                         onClick={() => handleDelete(role.id)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -215,110 +222,144 @@ export default function RoleManagement() {
             )}
           </TableBody>
         </Table>
-      </div>
+        </CardContent>
+        {/* Pagination Implementation */}
+        {roles.length > 0 && (
+          <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200 text-sm max-md:flex-col max-md:gap-4">
+            <div className="text-slate-500">
+              Menampilkan {Math.min((currentPage - 1) * itemsPerPage + 1, roles.length)} - {Math.min(currentPage * itemsPerPage, roles.length)} dari {roles.length} data
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="h-8 px-3"
+              >
+                Sebelumnya
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.ceil(roles.length / itemsPerPage) }).map((_, i) => (
+                  <Button
+                    key={i}
+                    variant={currentPage === i + 1 ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`h-8 w-8 p-0 ${currentPage === i + 1 ? 'bg-blue-600 text-white' : ''}`}
+                  >
+                    {i + 1}
+                  </Button>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(Math.ceil(roles.length / itemsPerPage), p + 1))}
+                disabled={currentPage === Math.ceil(roles.length / itemsPerPage)}
+                className="h-8 px-3"
+              >
+                Selanjutnya
+              </Button>
+            </div>
+          </div>
+        )}
+      </Card>
 
       {/* Modal Dialog */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
-          <div className="bg-blue-600 p-8 text-white relative overflow-hidden">
-            <Shield className="absolute -right-8 -bottom-8 h-32 w-32 opacity-10 rotate-12" />
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold tracking-tight">
-                {editingRole ? "Edit Role Jabatan" : "Tambah Role Baru"}
-              </DialogTitle>
-              <p className="text-blue-100 text-sm mt-1">
-                {editingRole ? "Perbarui informasi penanggung jawab sistem." : "Definisikan role baru untuk alur kerja tiket SIGAP."}
-              </p>
-            </DialogHeader>
-          </div>
+        <DialogContent className="max-w-[380px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingRole ? "Edit Role Jabatan" : "Tambah Role Baru"}
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              {editingRole ? "Perbarui informasi penanggung jawab sistem." : "Definisikan role baru untuk alur kerja tiket SIGAP."}
+            </p>
+          </DialogHeader>
 
-          <div className="p-8 bg-white">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid grid-cols-1 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    rules={{ required: "Nama role wajib diisi" }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-600 font-bold">Nama Jabatan</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Contoh: Admin General Affair"
-                            className="bg-slate-50 border-slate-200 focus:ring-blue-500 h-11"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 pt-2">
+              <FormField
+                control={form.control}
+                name="name"
+                rules={{ required: "Nama role wajib diisi" }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-slate-600 font-semibold">Nama Jabatan</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Contoh: Admin General Affair"
+                        className="border-slate-200"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                  <FormField
-                    control={form.control}
-                    name="code"
-                    rules={{ required: "Kode role wajib diisi" }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-600 font-bold">Kode API (Slug)</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Contoh: admin_ga"
-                            {...field}
-                            disabled={!!editingRole} 
-                            className={`h-11 ${!!editingRole ? "bg-slate-100 text-slate-500 cursor-not-allowed italic" : "bg-slate-50 border-slate-200"}`}
-                          />
-                        </FormControl>
-                        <p className="text-[10px] text-slate-400 mt-1.5 flex items-center gap-1.5">
-                          <Settings className="h-3 w-3" />
-                          {editingRole 
-                            ? "Identitas teknis (slug) bersifat permanen untuk integritas data." 
-                            : "Gunakan snake_case (huruf kecil & _) untuk referensi sistem."}
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <FormField
+                control={form.control}
+                name="code"
+                rules={{ required: "Kode role wajib diisi" }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-slate-600 font-semibold">Kode API (Slug)</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Contoh: admin_ga"
+                        {...field}
+                        disabled={!!editingRole} 
+                        className={`${!!editingRole ? "bg-slate-100 text-slate-500 cursor-not-allowed italic" : "border-slate-200"}`}
+                      />
+                    </FormControl>
+                    <p className="text-[10px] text-slate-400 mt-1.5 flex items-center gap-1.5">
+                      <Info className="h-3 w-3" />
+                      {editingRole 
+                        ? "Identitas teknis (slug) bersifat permanen untuk integritas data." 
+                        : "Gunakan snake_case (huruf kecil & _) untuk referensi sistem."}
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-600 font-bold">Deskripsi Tugas</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Jelaskan cakupan tugas role ini..." 
-                            className="bg-slate-50 border-slate-200 focus:ring-blue-500 h-11"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-slate-600 font-semibold">Deskripsi Tugas</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Jelaskan cakupan tugas role ini..." 
+                        className="border-slate-200 min-h-[80px] resize-none"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <DialogFooter className="gap-2 pt-4">
-                  <Button 
-                    variant="outline" 
-                    type="button" 
-                    onClick={() => setIsOpen(false)}
-                    className="h-11 rounded-md border-slate-200"
-                  >
-                    Batal
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    className="h-11 rounded-md bg-blue-600 hover:bg-blue-700 px-8 shadow-lg shadow-blue-200 transition-all active:scale-95"
-                  >
-                    {editingRole ? "Simpan Perubahan" : "Buat Role Sekarang"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </div>
+              <DialogFooter className="gap-2 pt-2">
+                <Button 
+                  variant="outline" 
+                  type="button" 
+                  onClick={() => setIsOpen(false)}
+                >
+                  Batal
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {editingRole ? "Simpan Perubahan" : "Buat Role"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>

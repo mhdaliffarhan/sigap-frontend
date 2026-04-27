@@ -20,12 +20,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Plus, Edit, Lock } from "lucide-react";
 import type { User } from "@/types";
 
 interface CreateFormData {
   name: string;
-  username?: string; // Optional jika tidak dipakai di backend
+  username: string; // Optional jika tidak dipakai di backend
   nip: string;
   jabatan: string;
   email: string;
@@ -37,7 +37,7 @@ interface CreateFormData {
 
 interface EditFormData {
   name: string;
-  username?: string;
+  username: string;
   nip: string;
   jabatan: string;
   email: string;
@@ -123,17 +123,20 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
     <>
       {/* Create Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={onCreateDialogChange}>
-        <DialogContent className="md:max-w-md md:max-h-[85vh] max-md:max-w-[90vw] max-md:max-h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Tambah User Baru</DialogTitle>
-            <DialogDescription>
-              Buat akun user baru untuk sistem
+        <DialogContent className="md:max-w-[480px] md:max-h-[85vh] max-md:max-w-[95vw] max-md:max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-2xl border-none shadow-2xl">
+          <DialogHeader className="p-6 bg-slate-50 border-b relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+               <Plus className="h-24 w-24" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-slate-800">Tambah User Baru</DialogTitle>
+            <DialogDescription className="text-slate-500 font-medium">
+              Daftarkan akun pegawai baru ke dalam sistem SIGAP
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 flex-1 overflow-y-auto pr-2 py-2">
+          <div className="p-6 space-y-6 flex-1 overflow-y-auto">
             <div className="space-y-2">
-              <Label>Nama Lengkap</Label>
+              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Lengkap</Label>
               <Input
                 placeholder="Nama lengkap user"
                 value={createFormData.name}
@@ -143,16 +146,16 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
               />
             </div>
 
-            {/* <div className="space-y-2">
+            <div className="space-y-2">
               <Label>Username</Label>
               <Input
                 placeholder="username"
-                value={createFormData.username}
+                value={createFormData.username || ''}
                 onChange={(e) =>
                   onCreateFormChange({ ...createFormData, username: e.target.value })
                 }
               />
-            </div> */}
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -270,33 +273,46 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
             </div>
           </div>
 
-          <DialogFooter className="pt-2">
+          <DialogFooter className="p-6 bg-slate-50 border-t gap-2">
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={() => onCreateDialogChange(false)}
             >
               Batal
             </Button>
-            <Button onClick={onCreateSubmit}>Buat User</Button>
+            <Button onClick={onCreateSubmit} className="bg-blue-600 hover:bg-blue-700 px-8">Buat User</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={showEditDialog} onOpenChange={onEditDialogChange}>
-        <DialogContent className="md:max-w-md md:max-h-[85vh] max-md:max-w-[90vw] max-md:max-h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>Perbarui informasi user</DialogDescription>
+        <DialogContent className="md:max-w-[480px] md:max-h-[85vh] max-md:max-w-[95vw] max-md:max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-2xl border-none shadow-2xl">
+          <DialogHeader className="p-6 bg-blue-50 border-b relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+               <Edit className="h-24 w-24" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-blue-900">Edit User</DialogTitle>
+            <DialogDescription className="text-blue-600 font-medium">Perbarui informasi akun user</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 flex-1 overflow-y-auto pr-2 py-2">
+          <div className="p-6 space-y-5 flex-1 overflow-y-auto">
             <div className="space-y-2">
-              <Label>Nama Lengkap</Label>
+              <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Lengkap</Label>
               <Input
                 value={editFormData.name}
                 onChange={(e) =>
                   onEditFormChange({ ...editFormData, name: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Username</Label>
+              <Input
+                value={editFormData.username || ''}
+                onChange={(e) =>
+                  onEditFormChange({ ...editFormData, username: e.target.value })
                 }
               />
             </div>
@@ -383,11 +399,14 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
             </div>
           </div>
 
-          <DialogFooter className="pt-2">
-            <Button variant="outline" onClick={() => onEditDialogChange(false)}>
+          <DialogFooter className="p-6 bg-slate-50 border-t gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => onEditDialogChange(false)}
+            >
               Batal
             </Button>
-            <Button onClick={onEditSubmit}>Simpan Perubahan</Button>
+            <Button onClick={onEditSubmit} className="bg-blue-600 hover:bg-blue-700 px-8">Simpan Perubahan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -416,16 +435,19 @@ export const UserManagementDialogs: React.FC<UserManagementDialogsProps> = ({
 
       {/* Reset Password Dialog */}
       <Dialog open={showResetDialog} onOpenChange={onResetDialogChange}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Reset Password User</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="md:max-w-[420px] flex flex-col p-0 overflow-hidden rounded-2xl border-none shadow-2xl">
+          <DialogHeader className="p-6 bg-orange-50 border-b relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+               <Lock className="h-24 w-24" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-orange-900">Reset Password</DialogTitle>
+            <DialogDescription className="text-orange-600 font-medium whitespace-normal">
               Masukkan password baru untuk user "{editingUser?.name}".
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="p-6 space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="new-password">Password Baru</Label>
+              <Label htmlFor="new-password" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Password Baru</Label>
               <div className="relative">
                 <Input
                   id="new-password"

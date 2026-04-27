@@ -20,6 +20,7 @@ import {
   XCircle,
   ChevronLeft,
   ChevronRight,
+  Eye,
 } from "lucide-react";
 import type { BookingGroups, ZoomAccountUi } from "./zoom-booking-types";
 import type { User } from "@/types";
@@ -273,8 +274,8 @@ export const ZoomBookingUserTabs: React.FC<ZoomBookingUserTabsProps> = ({
             </TabsTrigger>
           </TabsList>
 
-          <Card>
-            <CardContent className="p-0">
+          <Card className="rounded-xl overflow-hidden shadow-sm border-slate-200">
+            <CardContent className="p-0 overflow-x-auto">
               {isLoadingBookings ? (
                 <div className="p-8 text-center">
                   <Skeleton className="h-12 w-full mb-4" />
@@ -283,22 +284,23 @@ export const ZoomBookingUserTabs: React.FC<ZoomBookingUserTabsProps> = ({
                 </div>
               ) : (
                 <>
-                  <Table>
-                    <TableHeader>
+                  <Table className="min-w-[800px]">
+                    <TableHeader className="bg-slate-50">
                       <TableRow>
-                        <TableHead>Nomor Tiket</TableHead>
-                        <TableHead>Judul</TableHead>
-                        <TableHead>Tanggal & Waktu</TableHead>
-                        <TableHead>Peserta</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-center">Aksi</TableHead>
+                        <TableHead className="w-[60px] border-r border-b font-semibold text-center text-slate-700">No</TableHead>
+                        <TableHead className="w-[140px] border-r border-b font-semibold text-slate-700 px-4">Nomor Tiket</TableHead>
+                        <TableHead className="border-r border-b font-semibold text-slate-700 px-4">Judul</TableHead>
+                        <TableHead className="w-[180px] border-r border-b font-semibold text-slate-700 px-4">Tanggal & Waktu</TableHead>
+                        <TableHead className="w-[120px] border-r border-b font-semibold text-slate-700 px-4">Peserta</TableHead>
+                        <TableHead className="w-[120px] border-r border-b font-semibold text-slate-700 text-center">Status</TableHead>
+                        <TableHead className="w-[120px] border-b font-semibold text-slate-700 text-center px-4">Aksi</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {bookings.length === 0 ? (
                         <TableRow>
                           <TableCell
-                            colSpan={6}
+                            colSpan={7}
                             className="text-center py-12 text-gray-500"
                           >
                             <AlertCircle className="h-12 w-12 mx-auto mb-3 text-gray-300" />
@@ -306,19 +308,23 @@ export const ZoomBookingUserTabs: React.FC<ZoomBookingUserTabsProps> = ({
                           </TableCell>
                         </TableRow>
                       ) : (
-                        bookings.map((booking) => (
+                        bookings.map((booking, index) => (
                           <TableRow
                             key={booking.id}
-                            className="hover:bg-gray-50"
+                            className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
+                            onClick={() => onSelectBooking(booking)}
                           >
-                            <TableCell className="font-mono text-sm">
+                            <TableCell className="border-r border-b font-medium text-center text-slate-500">
+                              {(currentPage - 1) * 15 + index + 1}
+                            </TableCell>
+                            <TableCell className="border-r border-b font-medium bg-white group-hover:bg-transparent px-4 font-mono text-xs">
                               {booking.ticketNumber}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="border-r border-b font-medium bg-white group-hover:bg-transparent px-4">
                               <p>{booking.title}</p>
                             </TableCell>
-                            <TableCell>
-                              <p className="text-sm">
+                            <TableCell className="border-r border-b bg-white group-hover:bg-transparent px-4">
+                              <p className="text-sm font-medium">
                                 {new Date(booking.date).toLocaleDateString(
                                   "id-ID"
                                 )}
@@ -327,22 +333,22 @@ export const ZoomBookingUserTabs: React.FC<ZoomBookingUserTabsProps> = ({
                                 {booking.startTime} - {booking.endTime}
                               </p>
                             </TableCell>
-                            <TableCell className="text-sm">
+                            <TableCell className="border-r border-b bg-white group-hover:bg-transparent px-4 text-sm">
                               {booking.estimatedParticipants} orang
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="border-r border-b text-center">
                               {" "}
                               {renderStatusBadge(booking.status)}
                             </TableCell>
-                            <TableCell className="text-center">
-                              <Button
-                                variant="link"
-                                size="sm"
-                                className="hover:underline hover:text-blue-500 cursor-pointer"
-                                onClick={() => onSelectBooking(booking)}
-                              >
-                                Detail
-                              </Button>
+                            <TableCell className="border-b text-center px-4">
+                               <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8 text-blue-600 border border-blue-200 hover:bg-blue-50"
+                                  onClick={(e) => { e.stopPropagation(); onSelectBooking(booking); }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
                             </TableCell>
                           </TableRow>
                         ))
@@ -350,32 +356,43 @@ export const ZoomBookingUserTabs: React.FC<ZoomBookingUserTabsProps> = ({
                     </TableBody>
                   </Table>
 
-                  {pagination && pagination.last_page > 1 && (
-                    <div className="flex items-center justify-between p-4 border-t">
-                      <p className="text-sm text-gray-600">
+                  {pagination && pagination.last_page > 0 && (
+                    <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200 text-sm max-md:flex-col max-md:gap-4">
+                      <div className="text-slate-500">
                         Menampilkan {pagination.from} - {pagination.to} dari{" "}
-                        {pagination.total}
-                      </p>
-                      <div className="flex gap-2">
+                        {pagination.total} data
+                      </div>
+                      <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handlePageChange(currentPage - 1)}
                           disabled={currentPage === 1}
-                          className="cursor-pointer"
+                          className="h-8 px-3"
                         >
-                          <ChevronLeft className="h-4 w-4" />
-                          <span className="max-md:hidden">Sebelumnya</span>
+                          Sebelumnya
                         </Button>
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: pagination.last_page }).map((_, i) => (
+                            <Button
+                              key={i}
+                              variant={currentPage === i + 1 ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => handlePageChange(i + 1)}
+                              className={`h-8 w-8 p-0 max-md:hidden ${currentPage === i + 1 ? 'bg-blue-600 text-white' : ''}`}
+                            >
+                              {i + 1}
+                            </Button>
+                          ))}
+                        </div>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handlePageChange(currentPage + 1)}
                           disabled={!pagination.has_more}
-                          className="cursor-pointer"
+                          className="h-8 px-3"
                         >
-                          <span className="max-md:hidden">Selanjutnya</span>
-                          <ChevronRight className="h-4 w-4" />
+                          Selanjutnya
                         </Button>
                       </div>
                     </div>

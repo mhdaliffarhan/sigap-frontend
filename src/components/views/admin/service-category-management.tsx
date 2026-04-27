@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form'; // [NEW] Added useWatch
 import { api } from '@/lib/api';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -8,18 +9,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form'; // [NEW] Added FormDescription
 import { toast } from 'sonner';
-import { Settings, Trash2, Plus, Loader2, FileText, Calendar, Wrench, Users, TrafficCone } from 'lucide-react'; // [NEW] Added Icons
-import ServiceCategoryDetail from './service-category-detail';
-import { Separator } from '@/components/ui/separator'; // [NEW] Added Separator
+import { Eye, Trash2, Plus, Loader2, FileText, Calendar, Wrench, Users, TrafficCone } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 
-export default function ServiceCategoryManagement() {
+interface ServiceCategoryManagementProps {
+  onViewDetail?: (id: string) => void;
+}
+
+export default function ServiceCategoryManagement({ onViewDetail }: ServiceCategoryManagementProps) {
   const [categories, setCategories] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [roles, setRoles] = useState<any[]>([]); // [NEW] List roles dinamis
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
-  const [viewState, setViewState] = useState<'list' | 'detail'>('list');
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Form Schema
   const form = useForm({
@@ -121,14 +127,9 @@ export default function ServiceCategoryManagement() {
   }
 
   const handleManage = (id: string) => {
-    setSelectedCategoryId(id);
-    setViewState('detail');
-  };
-
-  const handleBackToList = () => {
-    setViewState('list');
-    setSelectedCategoryId(null);
-    loadInitialData();
+    if (onViewDetail) {
+      onViewDetail(id);
+    }
   };
 
   const getTypeIcon = (type: string) => {
@@ -148,44 +149,48 @@ export default function ServiceCategoryManagement() {
       })
     : users;
 
-  // RENDER UTAMA: Switch View
-  if (viewState === 'detail' && selectedCategoryId) {
-    return <ServiceCategoryDetail categoryId={selectedCategoryId} onBack={handleBackToList} />;
-  }
-
   return (
-    <div className="space-y-10 lg:p-8 pb-20">
-      <div className="flex justify-between items-center bg-white/40 backdrop-blur-md p-6 rounded-[2rem] border border-white/40 shadow-sm">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-4 max-md:flex-col">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900">Katalog Layanan</h2>
-          <p className="text-muted-foreground mt-1">Kelola jenis layanan, formulir input, dan alur penugasan (Traffic Control).</p>
+          <h1 className="text-3xl font-bold">Katalog Layanan</h1>
+          <p className="text-muted-foreground">
+            Kelola jenis layanan, formulir input, dan alur penugasan (Traffic Control).
+          </p>
         </div>
-        <Button onClick={openModal} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="mr-2 h-4 w-4" /> Buat Layanan Baru
-        </Button>
+        <div className="flex items-center gap-3 max-md:w-full">
+          <Button onClick={openModal} className="bg-blue-600 hover:bg-blue-700 max-md:w-full">
+            <Plus className="mr-2 h-4 w-4" /> Buat Layanan Baru
+          </Button>
+        </div>
       </div>
 
-      <div className="glass-card rounded-[2rem] border-none shadow-xl overflow-hidden">
-        <Table className="min-w-[800px]">
-          <TableHeader className="bg-blue-600/5 backdrop-blur-md">
+      <Card className="rounded-xl overflow-hidden shadow-sm border-slate-200">
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-[800px]">
+            <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableHead className="w-[300px] border-r border-b font-semibold text-gray-900 pl-4">Nama Layanan</TableHead>
-              <TableHead className="w-[150px] border-r border-b font-semibold text-gray-900">Tipe</TableHead>
+              <TableHead className="w-[60px] border-r border-b font-semibold text-center text-slate-700">No</TableHead>
+              <TableHead className="w-[300px] border-r border-b font-semibold text-slate-700 px-4">Nama Layanan</TableHead>
+              <TableHead className="w-[150px] border-r border-b font-semibold text-slate-700 px-4">Tipe</TableHead>
               {/* [NEW] Kolom Config */}
-              <TableHead className="w-[200px] border-r border-b font-semibold text-gray-900">Strategi Penugasan</TableHead>
-              <TableHead className="w-[120px] border-r border-b font-semibold text-gray-900 text-center">Status</TableHead>
-              <TableHead className="w-[150px] border-b font-semibold text-gray-900 text-center px-2">Aksi</TableHead>
+              <TableHead className="w-[200px] border-r border-b font-semibold text-slate-700 px-4">Strategi Penugasan</TableHead>
+              <TableHead className="w-[120px] border-r border-b font-semibold text-slate-700 text-center">Status</TableHead>
+              <TableHead className="w-[150px] border-b font-semibold text-slate-700 text-center px-4">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-               <TableRow><TableCell colSpan={5} className="text-center py-12"><Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-blue-600"/>Memuat...</TableCell></TableRow>
+               <TableRow><TableCell colSpan={6} className="text-center py-12"><Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-blue-600"/>Memuat...</TableCell></TableRow>
             ) : categories.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-12 text-gray-500">Belum ada layanan.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-12 text-gray-500">Belum ada layanan.</TableCell></TableRow>
             ) : (
-              categories.map((cat) => (
-                <TableRow key={cat.id} className="group hover:bg-blue-50/40">
-                  <TableCell className="border-r border-b font-medium bg-white group-hover:bg-blue-50/40 pl-4">
+              categories.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((cat, idx) => (
+                <TableRow key={cat.id} className="group hover:bg-slate-50/50 transition-colors">
+                  <TableCell className="border-r border-b font-medium text-center text-slate-500">
+                    {(currentPage - 1) * itemsPerPage + idx + 1}
+                  </TableCell>
+                  <TableCell className="border-r border-b font-medium bg-white group-hover:bg-transparent px-4">
                     <div className="flex items-start gap-3">
                       <div className="mt-1 p-2 bg-slate-100 rounded-lg">{getTypeIcon(cat.type)}</div>
                       <div>
@@ -194,16 +199,16 @@ export default function ServiceCategoryManagement() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="border-r border-b"><span className="capitalize px-2 py-1 bg-slate-100 rounded text-xs font-medium">{cat.type}</span></TableCell>
+                  <TableCell className="border-r border-b px-4"><span className="capitalize px-2 py-1 bg-slate-100 rounded-md text-xs font-medium text-slate-600">{cat.type}</span></TableCell>
                   
                   {/* [NEW] Tampilan Strategi */}
-                  <TableCell className="border-r border-b">
+                  <TableCell className="border-r border-b px-4">
                     <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-1 text-xs font-medium text-gray-700">
+                      <div className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
                         <Users className="h-3 w-3 text-indigo-400" />
                         <span className="capitalize">{cat.handling_role?.name || cat.target_role || 'Belum diatur'}</span>
                       </div>
-                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500">
                         <TrafficCone className="h-3 w-3 text-orange-400" />
                         <span className="capitalize">
                           {cat.assignment_type === 'auto' ? 'Otomatis' : 
@@ -214,14 +219,14 @@ export default function ServiceCategoryManagement() {
                   </TableCell>
 
                   <TableCell className="border-r border-b text-center">
-                    {cat.is_active ? <span className="text-green-600 text-xs font-bold bg-green-50 px-2 py-1 rounded-full">Aktif</span> : <span className="text-slate-400 text-xs bg-slate-50 px-2 py-1 rounded-full">Non-Aktif</span>}
+                    {cat.is_active ? <span className="text-green-700 text-xs font-semibold bg-green-100 px-2.5 py-1 rounded-full border border-green-200">Aktif</span> : <span className="text-slate-500 text-xs font-medium bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">Non-Aktif</span>}
                   </TableCell>
-                  <TableCell className="border-b text-center bg-white/50 group-hover:bg-blue-50/40">
+                  <TableCell className="border-b text-center px-4">
                     <div className="flex items-center justify-center gap-2">
-                      <Button variant="outline" size="sm" className="h-8 text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => handleManage(cat.id)}>
-                        <Settings className="h-3.5 w-3.5 mr-1" /> Kelola
+                      <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 border border-blue-200 hover:bg-blue-50" onClick={() => handleManage(cat.id)}>
+                        <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-red-600" onClick={() => handleDelete(cat.id)}>
+                      <Button variant="outline" size="icon" className="h-8 w-8 text-red-600 border border-red-200 hover:bg-red-50" onClick={() => handleDelete(cat.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -231,7 +236,49 @@ export default function ServiceCategoryManagement() {
             )}
           </TableBody>
         </Table>
-      </div>
+        </CardContent>
+        {/* Pagination Implementation */}
+        {categories.length > 0 && (
+          <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200 text-sm max-md:flex-col max-md:gap-4">
+            <div className="text-slate-500">
+              Menampilkan {Math.min((currentPage - 1) * itemsPerPage + 1, categories.length)} - {Math.min(currentPage * itemsPerPage, categories.length)} dari {categories.length} data
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="h-8 px-3"
+              >
+                Sebelumnya
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.ceil(categories.length / itemsPerPage) }).map((_, i) => (
+                  <Button
+                    key={i}
+                    variant={currentPage === i + 1 ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`h-8 w-8 p-0 ${currentPage === i + 1 ? 'bg-blue-600 text-white' : ''}`}
+                  >
+                    {i + 1}
+                  </Button>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(Math.ceil(categories.length / itemsPerPage), p + 1))}
+                disabled={currentPage === Math.ceil(categories.length / itemsPerPage)}
+                className="h-8 px-3"
+              >
+                Selanjutnya
+              </Button>
+            </div>
+          </div>
+        )}
+      </Card>
 
       {/* MODAL CREATE DENGAN KONFIGURASI TRAFFIC */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>

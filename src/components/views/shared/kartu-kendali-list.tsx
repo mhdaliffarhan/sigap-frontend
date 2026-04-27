@@ -118,7 +118,7 @@ export const KartuKendaliList: React.FC<KartuKendaliListProps> = ({
   };
 
   return (
-    <Card className="border-none shadow-sm pb-6">
+    <Card className="rounded-xl overflow-hidden shadow-sm border-slate-200">
       <CardHeader>
         <div className="flex items-start justify-between max-md:flex-col max-md:items-start max-md:gap-4">
           <div>
@@ -162,18 +162,16 @@ export const KartuKendaliList: React.FC<KartuKendaliListProps> = ({
         </div>
       </CardHeader>
 
-      <CardContent>
-        {/* Ubah div pembungkus agar memiliki border penuh dan rounded corner */}
-        <div className="rounded-md border overflow-x-auto">
+      <CardContent className="p-0 overflow-x-auto">
           <Table className="min-w-[800px]">
-            <TableHeader className="bg-muted/50">
-              <TableRow className="border-b">
-                <TableHead className="w-[50px] text-center border-r">No</TableHead>
-                <TableHead className="w-[140px] border-r">No. Tiket</TableHead>
-                <TableHead className="border-r">Judul Tiket</TableHead>
-                <TableHead className="hidden md:table-cell w-[100px] border-r">Status</TableHead>
-                <TableHead className="hidden lg:table-cell border-r">Teknisi</TableHead>
-                <TableHead className="hidden xl:table-cell w-[120px]">Terakhir</TableHead>
+            <TableHeader className="bg-slate-50">
+              <TableRow>
+                <TableHead className="w-[60px] border-r border-b font-semibold text-center text-slate-700">No</TableHead>
+                <TableHead className="w-[140px] border-r border-b font-semibold text-slate-700 px-4">No. Tiket</TableHead>
+                <TableHead className="border-r border-b font-semibold text-slate-700 px-4">Judul Tiket</TableHead>
+                <TableHead className="hidden md:table-cell w-[100px] border-r border-b font-semibold text-slate-700 px-4">Status</TableHead>
+                <TableHead className="hidden lg:table-cell border-r border-b font-semibold text-slate-700 px-4">Teknisi</TableHead>
+                <TableHead className="hidden xl:table-cell w-[120px] border-b font-semibold text-slate-700 px-4">Terakhir</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -193,16 +191,16 @@ export const KartuKendaliList: React.FC<KartuKendaliListProps> = ({
                 items.map((item, index) => (
                   <TableRow
                     key={item.id}
-                    className="hover:bg-muted/30 border-b last:border-0 cursor-pointer"
+                    className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
                     onClick={() => onViewDetail(item.ticketId)}
                   >
-                    <TableCell className="text-center text-muted-foreground font-mono text-xs border-r">
+                    <TableCell className="border-r border-b font-medium text-center text-slate-500">
                       {(pagination.currentPage - 1) * pagination.perPage + index + 1}
                     </TableCell>
-                    <TableCell className="border-r">
+                    <TableCell className="border-r border-b font-medium bg-white group-hover:bg-transparent px-4">
                       <span className="font-mono text-xs font-medium">{item.ticketNumber}</span>
                     </TableCell>
-                    <TableCell className="border-r">
+                    <TableCell className="border-r border-b font-medium bg-white group-hover:bg-transparent px-4">
                       <div className="flex flex-col">
                         <span className="font-medium text-sm truncate max-w-[300px]">
                           {item.ticketTitle}
@@ -214,13 +212,13 @@ export const KartuKendaliList: React.FC<KartuKendaliListProps> = ({
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell border-r">
+                    <TableCell className="hidden md:table-cell border-r border-b px-4">
                       {getStatusBadge(item.ticketStatus)}
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell text-sm text-muted-foreground border-r">
+                    <TableCell className="hidden lg:table-cell text-sm text-slate-500 border-r border-b bg-white group-hover:bg-transparent px-4">
                       {item.technicianName || "-"}
                     </TableCell>
-                    <TableCell className="hidden xl:table-cell text-sm text-muted-foreground">
+                    <TableCell className="hidden xl:table-cell text-sm text-slate-500 border-b bg-white group-hover:bg-transparent px-4">
                       {formatDate(item.closedAt || item.completedAt)}
                     </TableCell>
                   </TableRow>
@@ -228,35 +226,49 @@ export const KartuKendaliList: React.FC<KartuKendaliListProps> = ({
               )}
             </TableBody>
           </Table>
-        </div>
-
-        {/* Pagination */}
-        {pagination.lastPage > 1 && (
-          <div className="flex items-center justify-between pt-4 max-md:flex-col max-md:gap-4">
-            <span className="text-sm text-muted-foreground">
-              Menampilkan {items.length} dari {pagination.total} data
-            </span>
-            <div className="flex gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchKartuKendali(pagination.currentPage - 1)}
-                disabled={pagination.currentPage === 1 || loading}
-              >
-                Sebelumnya
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchKartuKendali(pagination.currentPage + 1)}
-                disabled={pagination.currentPage === pagination.lastPage || loading}
-              >
-                Selanjutnya
-              </Button>
-            </div>
-          </div>
-        )}
       </CardContent>
+
+      {/* Pagination Implementation */}
+      {pagination.lastPage > 0 && (
+        <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200 text-sm max-md:flex-col max-md:gap-4">
+          <div className="text-slate-500">
+            Menampilkan {items.length} dari {pagination.total} data
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchKartuKendali(pagination.currentPage - 1)}
+              disabled={pagination.currentPage === 1 || loading}
+              className="h-8 px-3"
+            >
+              Sebelumnya
+            </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: pagination.lastPage }).map((_, i) => (
+                <Button
+                  key={i}
+                  variant={pagination.currentPage === i + 1 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => fetchKartuKendali(i + 1)}
+                  className={`h-8 w-8 p-0 ${pagination.currentPage === i + 1 ? 'bg-blue-600 text-white' : ''}`}
+                >
+                  {i + 1}
+                </Button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchKartuKendali(pagination.currentPage + 1)}
+              disabled={pagination.currentPage === pagination.lastPage || loading}
+              className="h-8 px-3"
+            >
+              Selanjutnya
+            </Button>
+          </div>
+        </div>
+      )}
     </Card>
   );
 };
